@@ -87,3 +87,40 @@ export function validateChallengeRules(input: {
   }
   return problems;
 }
+
+// ───────── 회원가입 (BP-AUTH-001-2) ─────────
+
+export const PASSWORD_RULE_MESSAGE = "영문과 숫자를 함께 넣어 주세요 (8~72자)";
+export const PASSWORD_TOO_LONG_MESSAGE = "비밀번호가 너무 길어요. 한글·특수 문자는 1자를 2~4자로 계산해요 (72바이트까지)";
+
+/** 비밀번호 문제 문구. 없으면 null. 저장 방식(bcrypt) 한계에 맞춰 UTF-8 72바이트까지만 허용해요. */
+export function passwordProblem(pw: string): string | null {
+  if (pw.length < 8 || pw.length > 72 || !/[A-Za-z]/.test(pw) || !/\d/.test(pw)) return PASSWORD_RULE_MESSAGE;
+  if (new TextEncoder().encode(pw).length > 72) return PASSWORD_TOO_LONG_MESSAGE;
+  return null;
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** 서버에서 받은 가입 입력 검증. 화면을 거치지 않은 요청도 여기서 막아요. 문제가 없으면 null. */
+export function signupProblem(input: unknown): string | null {
+  if (typeof input !== "object" || input === null) return "입력값을 확인해 주세요";
+  const { email, password, passwordConfirm, name, agreed } = input as Record<string, unknown>;
+  if (
+    typeof email !== "string" ||
+    typeof password !== "string" ||
+    typeof passwordConfirm !== "string" ||
+    typeof name !== "string" ||
+    typeof agreed !== "boolean"
+  ) {
+    return "입력값을 확인해 주세요";
+  }
+  if (!agreed) return "필수 동의 항목에 체크해 주세요";
+  if (!EMAIL_RE.test(email)) return "이메일 주소를 확인해 주세요";
+  const pw = passwordProblem(password);
+  if (pw) return pw;
+  if (password !== passwordConfirm) return "비밀번호가 서로 달라요";
+  const n = name.trim();
+  if (n.length < 2 || n.length > 20) return "이름은 2~20자로 적어 주세요";
+  return null;
+}

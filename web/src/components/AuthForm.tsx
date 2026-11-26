@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
+import { passwordProblem } from "@/domain/validation";
 import { loginAction, signupAction } from "@/server/actions";
 
 const field = "mt-1 h-11 w-full rounded-sm bg-grey-90 px-3 text-[14px] placeholder:text-grey-50 aria-[invalid=true]:outline aria-[invalid=true]:outline-1 aria-[invalid=true]:outline-accent-soft";
@@ -86,10 +87,7 @@ export function SignupForm() {
 
   const errs = {
     email: !EMAIL.test(v.email) ? "이메일 주소를 확인해 주세요" : "",
-    pw:
-      v.pw.length < 8 || v.pw.length > 72 || !/[A-Za-z]/.test(v.pw) || !/\d/.test(v.pw)
-        ? "영문과 숫자를 함께 넣어 주세요 (8~72자)"
-        : "",
+    pw: passwordProblem(v.pw) ?? "",
     pw2: v.pw2 !== v.pw || !v.pw2 ? "비밀번호가 서로 달라요" : "",
     name: v.name.trim().length < 2 || v.name.trim().length > 20 ? "이름은 2~20자로 적어 주세요" : "",
   };

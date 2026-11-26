@@ -6,10 +6,9 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getUser, getUserByEmail, createUser, enroll, cancelEnrollment, submitProof, createPost, editPost, deletePost, toggleLike, addComment, type Result, type SubmitOutcome } from "./store";
-import type { ProofPayload } from "@/domain/validation";
+import { signupProblem, type ProofPayload } from "@/domain/validation";
 
 const SESSION = "cu-session";
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function currentUserId(): Promise<string | null> {
   const c = await cookies();
@@ -29,6 +28,9 @@ export async function logoutAction(): Promise<void> {
 }
 
 export async function loginAction(email: string, password: string): Promise<Result<{ name: string }>> {
+  if (typeof email !== "string" || typeof password !== "string") {
+    return { ok: false, message: "이메일이나 비밀번호가 맞지 않아요" };
+  }
   const user = getUserByEmail(email.trim().toLowerCase());
   if (!user || user.password !== password) {
     return { ok: false, message: "이메일이나 비밀번호가 맞지 않아요" };
@@ -44,14 +46,10 @@ export async function signupAction(input: {
   name: string;
   agreed: boolean;
 }): Promise<Result<{ name: string }>> {
-  if (!input.agreed) return { ok: false, message: "필수 동의 항목에 체크해 주세요" };
-  if (!EMAIL.test(input.email)) return { ok: false, message: "이메일 주소를 확인해 주세요" };
-  if (!/[A-Za-z]/.test(input.password) || !/\d/.test(input.password) || input.password.length < 8 || input.password.length > 72) {
-    return { ok: false, message: "영문과 숫자를 함께 넣어 주세요 (8~72자)" };
-  }
-  if (input.password !== input.passwordConfirm) return { ok: false, message: "비밀번호가 서로 달라요" };
+  // 서버 액션은 화면을 거치지 않고도 호출될 수 있어서, 타입부터 다시 검사해요.
+  const problem = signupProblem(input);
+  if (problem) return { ok: false, message: problem };
   const name = input.name.trim();
-  if (name.length < 2 || name.length > 20) return { ok: false, message: "이름은 2~20자로 적어 주세요" };
   const created = createUser({ email: input.email.trim().toLowerCase(), password: input.password, name });
   if (!created.ok) return created;
   await setSession(created.value.id);
