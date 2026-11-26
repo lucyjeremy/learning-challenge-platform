@@ -136,7 +136,7 @@ function MyStreak({ userId, id }: { userId: string; id: string }) {
           <dd className="font-bold tabular-nums">{left === 0 ? "기준 달성" : `${left}일 더`}</dd>
         </div>
       </dl>
-      <Link href={`/c/${id}/feed`} className="mt-4 text-[14px] text-accent-soft hover:underline">
+      <Link href={`/c/${id}/feed`} className="inline-flex min-h-11 items-center mt-2 text-[14px] text-accent-soft hover:underline">
         챌린지 홈으로 →
       </Link>
     </div>
@@ -157,7 +157,7 @@ function Section({
       <div className="mb-4 flex items-end justify-between gap-4">
         <h2 className="text-[20px] font-bold">{title}</h2>
         {more && (
-          <Link href={more.href} className="shrink-0 text-[14px] text-accent-soft sm:text-[16px]">
+          <Link href={more.href} className="inline-flex min-h-11 items-center shrink-0 text-[14px] text-accent-soft sm:text-[16px]">
             <span className="sm:hidden">더 보기</span>
             <span className="hidden sm:inline">{more.label}</span> →
           </Link>

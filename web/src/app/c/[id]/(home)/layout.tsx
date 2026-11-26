@@ -34,7 +34,7 @@ export default async function ChallengeHomeLayout({ children, params }: LayoutPr
     <div className="mx-auto max-w-content px-5 pt-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <Link href={`/c/${id}`} className="text-[13px] text-grey-40 hover:text-grey-20">
+          <Link href={`/c/${id}`} className="inline-flex min-h-11 items-center text-[13px] text-grey-40 hover:text-grey-20">
             {c.category} · {c.instructor.name}
           </Link>
           <h1 className="mt-1 text-[24px] font-bold">{c.title}</h1>

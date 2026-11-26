@@ -61,7 +61,7 @@ export default async function DayPage({ params }: PageProps<"/c/[id]/day/[n]">) 
   return (
     <article>
       <p className="text-[13px] text-grey-40 tabular-nums">
-        <Link href={`/c/${id}/curriculum`} className="hover:text-grey-20">내 강의실</Link> · Day {n} / {c.days} · {fmtDate(date)}
+        <Link href={`/c/${id}/curriculum`} className="inline-flex min-h-11 items-center hover:text-grey-20">내 강의실</Link> · Day {n} / {c.days} · {fmtDate(date)}
       </p>
       <h2 className="mt-1 text-[22px] font-bold">{c.dayTitles[n - 1]}</h2>
 
