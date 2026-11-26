@@ -1,0 +1,40 @@
+// 그로블 결제 웹훅. 서명: HMAC-SHA256(키 = 웹훅 비밀키 전체 문자열, 내용 = "타임스탬프.원본본문"), 16진수.
+// 헤더: x-groble-signature, x-groble-timestamp(초), x-groble-idempotency-key(이벤트 id).
+
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+export const MAX_SKEW_SECONDS = 5 * 60;
+
+export type GrobleEvent = {
+  id: string;
+  type: string; // payment.completed, payment.cancel_requested ...
+  occurredAt: string;
+  data: {
+    object: {
+      merchantUid?: string;
+      buyer?: { email?: string; displayName?: string };
+      content?: { id?: string; title?: string };
+      pricing?: { finalAmount?: number; currency?: string };
+    };
+  };
+};
+
+export function grobleSignature(secret: string, timestamp: string, rawBody: string): string {
+  return createHmac("sha256", secret).update(`${timestamp}.${rawBody}`).digest("hex");
+}
+
+/** 서명과 시각을 확인한다. 문제가 없으면 null, 있으면 사유. */
+export function verifyGroble(
+  secret: string,
+  headers: { signature: string | null; timestamp: string | null },
+  rawBody: string,
+  nowSeconds: number,
+): string | null {
+  const { signature, timestamp } = headers;
+  if (!signature || !timestamp || !/^\d+$/.test(timestamp)) return "서명 헤더가 없어요";
+  if (Math.abs(nowSeconds - Number(timestamp)) > MAX_SKEW_SECONDS) return "요청 시각이 5분 넘게 차이 나요";
+  const expected = Buffer.from(grobleSignature(secret, timestamp, rawBody), "hex");
+  const given = Buffer.from(signature, "hex");
+  if (given.length !== expected.length || !timingSafeEqual(given, expected)) return "서명이 맞지 않아요";
+  return null;
+}
