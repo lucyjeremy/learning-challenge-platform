@@ -24,8 +24,8 @@ export type Challenge = {
   tone: string; // 썸네일 바탕색 (이미지가 생기기 전까지 쓰는 색면)
 };
 
-// 시드 데이터의 기준 날짜예요. DB를 연결하면 서버의 KST 오늘 날짜로 바꿔요.
-export const TODAY = "2026-11-25";
+// 오늘 날짜 (한국 시간, YYYY-MM-DD). 서버가 뜰 때 정해져요.
+export const TODAY = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Seoul" }).format(new Date());
 
 export const ME = { name: "김지은", initial: "지", level: 3, points: 96 };
 

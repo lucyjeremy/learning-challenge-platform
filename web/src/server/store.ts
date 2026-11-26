@@ -1,8 +1,8 @@
-// 서버 저장소 (메모리). Supabase 연결 전까지 쓰는 임시 저장소예요.
-// 규칙은 src/domain 의 순수 함수를 그대로 써요. 시각은 항상 인자로 받아요(테스트 가능).
-// 서버를 다시 켜면 데이터는 시드 상태로 돌아가요.
+// 서버 저장소. 규칙은 src/domain 의 순수 함수를 그대로 써요. 시각은 항상 인자로 받아요(테스트 가능).
+// Supabase 키가 있으면 요청마다 DB에서 상태를 불러오고(server/db.ts), 바뀐 부분만 DB에 저장해요.
+// 키가 없으면 메모리에만 두고, 서버를 다시 켜면 시드 상태로 돌아가요.
 
-import { challenges, myEnrollments, type Challenge, type DayStatus } from "@/lib/data";
+import { challenges, type Challenge, type DayStatus } from "@/lib/data";
 import { deadline, dayDate, isEarly, isOpen, kstDateOf, endDate as domainEnd } from "@/domain/day-calendar";
 import { POINTS, CHALLENGE_LIMITS } from "@/domain/constants";
 import { awardIfNew, netForSource, revokeIfAny, type PointLog } from "@/domain/points";
@@ -39,10 +39,9 @@ export type StorePost = {
   comments: { id: string; authorId: string; body: string; createdAt: string }[];
   pinned?: boolean;
 };
-type LedgerRow = PointLog & { userId: string; challengeId: string };
+export type LedgerRow = PointLog & { userId: string; challengeId: string };
 
-type State = {
-  seq: number;
+export type State = {
   users: User[];
   enrollments: Enrollment[];
   submissions: Submission[];
@@ -77,7 +76,6 @@ function seedHistory(): Pick<State, "submissions" | "ledger"> {
 function initial(withHistory = true): State {
   const history = withHistory ? seedHistory() : { submissions: [], ledger: [] };
   return {
-    seq: 0,
     users: [
       { id: "u-student", name: "김지은", email: "student@demo.test", password: DEMO_PASSWORD, role: "student" },
       { id: "u-instructor", name: "박민호", email: "instructor@demo.test", password: DEMO_PASSWORD, role: "instructor" },
@@ -98,10 +96,18 @@ function state(): State {
   return g.__cuStore;
 }
 
-function nextId(prefix: string) {
-  const s = state();
-  s.seq += 1;
-  return `${prefix}-${s.seq}`;
+/** DB에 그대로 넣을 수 있도록 UUID로 만들어요. */
+function nextId() {
+  return crypto.randomUUID();
+}
+
+/** DB에서 불러온 상태로 바꿔요 (server/db.ts). */
+export function replaceState(next: State) {
+  g.__cuStore = next;
+}
+
+export function currentState(): State {
+  return state();
 }
 
 export type Result<T = undefined> = { ok: true; value: T } | { ok: false; message: string };
@@ -125,7 +131,7 @@ export function getUserByEmail(email: string): User | undefined {
 
 export function createUser(input: { email: string; password: string; name: string }): Result<{ id: string }> {
   if (getUserByEmail(input.email)) return fail("이미 가입한 이메일이에요. 로그인하거나 비밀번호를 찾아 주세요");
-  const id = nextId("u");
+  const id = nextId();
   state().users.push({ id, name: input.name, email: input.email, password: input.password, role: "student" });
   return ok({ id });
 }
@@ -177,13 +183,14 @@ export function myDayStates(userId: string, challengeId: string): Record<number,
   return out;
 }
 
-/** 화면용 Day 상태: 데모 학생의 지난 기록(시드) 위에 저장소의 실제 인증을 덮어써요. */
-export function dayStatusesFor(userId: string | null, challengeId: string): Record<number, DayStatus | "강사 확인 중" | "반려" | undefined> {
-  if (!userId || !activeEnrollment(userId, challengeId)) return {};
-  const seed = userId === "u-student" ? (myEnrollments[challengeId]?.statuses ?? {}) : {};
-  const mine = myDayStates(userId, challengeId);
-  const out: Record<number, DayStatus | "강사 확인 중" | "반려" | undefined> = { ...seed };
-  for (const [k, v] of Object.entries(mine)) if (v) out[Number(k)] = v;
+/** 화면용 Day 상태: 인증한 Day는 인정·확인 중, 마감이 지났는데 인증이 없으면 놓침. */
+export function dayStatusesFor(userId: string | null, challengeId: string, now = new Date()): Record<number, DayStatus | "강사 확인 중" | "반려" | undefined> {
+  const c = findChallenge(challengeId);
+  if (!userId || !c || !activeEnrollment(userId, challengeId)) return {};
+  const out: Record<number, DayStatus | "강사 확인 중" | "반려" | undefined> = { ...myDayStates(userId, challengeId) };
+  for (let d = 1; d <= c.days; d++) {
+    if (!out[d] && now.getTime() >= deadline(c.startDate, d).getTime()) out[d] = "놓침";
+  }
   return out;
 }
 
@@ -228,7 +235,7 @@ export function enroll(userId: string, challengeId: string, now: Date): Result<{
     return fail("챌린지는 동시에 5개까지 참여할 수 있어요. 진행 중인 챌린지가 끝나면 다시 신청할 수 있어요");
   }
   if (enrolledCount(c) >= c.capacity) return fail("정원이 다 찼어요. 비슷한 챌린지를 둘러볼까요?");
-  const id = nextId("e");
+  const id = nextId();
   state().enrollments.push({ id, challengeId, userId, status: "active" });
   return ok({ enrollmentId: id });
 }
@@ -319,7 +326,7 @@ export function submitProof(
   if (problems.length > 0) return fail(problems[0].message);
 
   const s = state();
-  const id = nextId("s");
+  const id = nextId();
   const status: "approved" | "pending" = c.approval === "자동 인정" ? "approved" : "pending";
   const sub: Submission = {
     id,
@@ -337,7 +344,7 @@ export function submitProof(
 
   let postId: string | undefined;
   if (payload.visibility === "public") {
-    postId = nextId("p");
+    postId = nextId();
     s.posts.push({
       id: postId,
       challengeId,
@@ -394,7 +401,7 @@ export function createPost(
   if (kind !== "공지" && !isMemberOf(userId, challengeId) && !isInstructor) return fail("신청한 참여자만 글을 쓸 수 있어요.");
   const problem = checkPostText(opts.title, body);
   if (problem) return fail(problem);
-  const id = nextId("p");
+  const id = nextId();
   state().posts.push({
     id,
     challengeId,
@@ -484,7 +491,7 @@ export function addComment(userId: string, postId: string, body: string, now: Da
   if (c && stateOf(c, now) === "ended") return fail("끝난 챌린지예요. 지난 글은 계속 볼 수 있어요.");
   const text = body.trim();
   if (text.length < 1 || text.length > 500) return fail("댓글은 1자 이상 500자 이하로 써 주세요.");
-  const id = nextId("c");
+  const id = nextId();
   post.comments.push({ id, authorId: userId, body: text, createdAt: now.toISOString() });
   // 댓글 적립: 본인 글 제외, 하루 최대 5개 (BP-POINT-001)
   if (post.authorId !== userId) {

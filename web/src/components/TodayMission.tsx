@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getChallenge } from "@/lib/data";
-import { currentDay } from "@/lib/format";
+import { currentDay, fmtDate } from "@/lib/format";
 import { currentUserId } from "@/server/actions";
 import { dayStatusesFor } from "@/server/store";
 
@@ -9,6 +9,15 @@ export async function TodayMission({ id, compact = false }: { id: string; compac
   const c = getChallenge(id);
   if (!c) return null;
   const day = currentDay(c);
+  if (day < 1) {
+    return (
+      <div className={`rounded-md bg-grey-90 ${compact ? "p-4" : "p-5 sm:p-6"}`}>
+        <p className="text-[13px] text-grey-30 tabular-nums">시작까지 D-{1 - day}</p>
+        <p className={`mt-1 font-bold ${compact ? "text-[16px]" : "text-[20px]"}`}>{fmtDate(c.startDate)}에 Day 1이 열려요</p>
+        <p className="mt-1 text-[13px] text-grey-30">첫 미션: {c.dayTitles[0]}</p>
+      </div>
+    );
+  }
   const status = dayStatusesFor(await currentUserId(), id)[day];
 
   return (

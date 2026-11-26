@@ -1,6 +1,6 @@
 -- 0001_init.sql: 챌린지업 초기 스키마 초안
 -- 근거: 상세설계서 DDS-CHUP-v0.2 2.1 (테이블·열거형·제약). RLS·RPC·pg_cron은 후속 마이그레이션(2~7단계)에서 추가.
--- 실행 상태: 미실행 (Supabase 미연결).
+-- 실행: 2026-11-26, 프로젝트 challengeup (ap-northeast-2)
 
 create extension if not exists pgcrypto;
 

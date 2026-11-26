@@ -6,7 +6,7 @@ import { Avatar } from "@/components/ui";
 import { challenges, getChallenge, leaderboard, todayCheckins } from "@/lib/data";
 import { currentUserId } from "@/server/actions";
 import { dayStatusesFor, isMemberOf } from "@/server/store";
-import { currentDay, requiredCheckins } from "@/lib/format";
+import { currentDay, fmtDate, requiredCheckins } from "@/lib/format";
 
 export function generateStaticParams() {
   return challenges.map((c) => ({ id: c.id }));
@@ -38,7 +38,7 @@ export default async function ChallengeHomeLayout({ children, params }: LayoutPr
           <h1 className="mt-1 text-[24px] font-bold">{c.title}</h1>
         </div>
         <p className="text-[13px] text-grey-30 tabular-nums">
-          Day {today} / {c.days} 진행 중
+          {today < 1 ? `${fmtDate(c.startDate)} 시작 · D-${1 - today}` : today > c.days ? "종료된 챌린지" : `Day ${today} / ${c.days} 진행 중`}
         </p>
       </div>
 

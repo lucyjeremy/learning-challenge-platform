@@ -34,7 +34,19 @@ export default async function ClassroomPage({ params }: PageProps<"/c/[id]/curri
 
   return (
     <div className="space-y-6">
-      {/* 1. 오늘 할 일 */}
+      {/* 1. 오늘 할 일 (시작 전이면 시작 안내) */}
+      {today < 1 ? (
+        <section aria-labelledby="continue" className="rounded-md bg-grey-90 p-5 sm:p-6">
+          <p id="continue" className="text-[13px] font-bold text-accent-soft">
+            시작까지 D-{1 - today}
+          </p>
+          <h2 className="mt-1 text-[20px] font-bold">{fmtDate(c.startDate)} 00:00에 Day 1이 열려요</h2>
+          <p className="mt-1 text-[14px] text-grey-30">첫 미션은 &lsquo;{c.dayTitles[0]}&rsquo;이에요. 시작 전에 피드에서 같은 기수와 인사를 나눠 보세요.</p>
+          <Link href={`/c/${id}/feed`} className="mt-4 inline-flex h-11 items-center rounded-sm bg-blue-50 px-5 text-[14px] font-bold">
+            피드로 가기
+          </Link>
+        </section>
+      ) : (
       <section aria-labelledby="continue" className="rounded-md bg-grey-90 p-5 sm:p-6">
         <p id="continue" className="text-[13px] font-bold text-accent-soft">
           {todayStatus === "인정" ? "오늘 인증 완료" : "이어서 하기"}
@@ -52,6 +64,7 @@ export default async function ClassroomPage({ params }: PageProps<"/c/[id]/curri
           )}
         </div>
       </section>
+      )}
 
       {/* 2. 전체 진행: 한눈에 보는 Day 칸 */}
       <section aria-labelledby="progress" className="rounded-md bg-grey-90 p-5">
