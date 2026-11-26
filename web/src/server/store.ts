@@ -270,11 +270,11 @@ export function streakOf(userId: string, challengeId: string): { current: number
 
 export function enroll(userId: string, challengeId: string, now: Date): Result<{ enrollmentId: string }> {
   const user = getUser(userId);
-  if (!user) return fail("로그인하면 신청할 수 있어요.");
+  if (!user) return fail("로그인하면 신청할 수 있어요");
   const c = findChallenge(challengeId);
-  if (!c) return fail("찾을 수 없는 챌린지예요.");
+  if (!c) return fail("찾을 수 없는 챌린지예요");
   if (stateOf(c, now) !== "recruiting") return fail("모집이 끝났어요. 지금 모집 중인 챌린지를 둘러볼까요?");
-  if (c.instructor.name === user.name) return fail("내가 연 챌린지에는 신청할 수 없어요.");
+  if (c.instructor.name === user.name) return fail("내가 연 챌린지에는 신청할 수 없어요");
   if (activeEnrollment(userId, challengeId)) return fail("이미 신청한 챌린지예요");
   if (activeCountFor(userId, now) >= CHALLENGE_LIMITS.maxConcurrentEnrollments) {
     return fail("챌린지는 동시에 5개까지 참여할 수 있어요. 진행 중인 챌린지가 끝나면 다시 신청할 수 있어요");
@@ -288,7 +288,7 @@ export function enroll(userId: string, challengeId: string, now: Date): Result<{
 export function cancelEnrollment(userId: string, challengeId: string, now: Date): Result {
   const c = findChallenge(challengeId);
   const e = activeEnrollment(userId, challengeId);
-  if (!c || !e) return fail("신청한 챌린지가 아니에요.");
+  if (!c || !e) return fail("신청한 챌린지가 아니에요");
   if (kstDateOf(now) >= c.startDate) return fail("챌린지가 시작돼서 신청을 취소할 수 없어요. 인증하지 않은 Day는 미완주로 기록돼요");
   e.status = "cancelled";
   return ok(undefined);
@@ -358,12 +358,12 @@ export function submitProof(
 ): Result<SubmitOutcome> {
   const c = findChallenge(challengeId);
   const e = activeEnrollment(userId, challengeId);
-  if (!c) return fail("찾을 수 없는 챌린지예요.");
-  if (!e) return fail("신청한 참여자만 인증할 수 있어요.");
-  if (stateOf(c, now) !== "in_progress") return fail("진행 중인 챌린지에서만 인증할 수 있어요.");
-  if (dayNo < 1 || dayNo > c.days) return fail("없는 Day예요.");
+  if (!c) return fail("찾을 수 없는 챌린지예요");
+  if (!e) return fail("신청한 참여자만 인증할 수 있어요");
+  if (stateOf(c, now) !== "in_progress") return fail("진행 중인 챌린지에서만 인증할 수 있어요");
+  if (dayNo < 1 || dayNo > c.days) return fail("없는 Day예요");
   const timing = { startDate: c.startDate, durationDays: c.days, unlockMode: "daily" as const };
-  if (!isOpen(timing, dayNo, now)) return fail("아직 열리지 않은 Day예요.");
+  if (!isOpen(timing, dayNo, now)) return fail("아직 열리지 않은 Day예요");
   if (now.getTime() >= deadline(c.startDate, dayNo).getTime()) return fail("아쉽지만 인증 마감(23:59)이 지났어요");
   if (mySubmission(userId, challengeId, dayNo)) return fail("이 Day는 이미 인증했어요. 내용을 고칠까요?");
 
@@ -423,9 +423,9 @@ export function submitProof(
 // ───────── 피드 ─────────
 
 function checkPostText(title: string | undefined, body: string): string | null {
-  if (title !== undefined && (title.trim().length < 1 || title.trim().length > 60)) return "제목은 1자 이상 60자 이하로 써 주세요.";
+  if (title !== undefined && (title.trim().length < 1 || title.trim().length > 60)) return "제목은 1자 이상 60자 이하로 써 주세요";
   const len = body.trim().length;
-  if (len < 1 || len > 2000) return "글은 1자 이상 2,000자 이하로 써 주세요.";
+  if (len < 1 || len > 2000) return "글은 1자 이상 2,000자 이하로 써 주세요";
   return null;
 }
 
@@ -439,11 +439,11 @@ export function createPost(
 ): Result<string> {
   const c = findChallenge(challengeId);
   const user = getUser(userId);
-  if (!c || !user) return fail("로그인하면 글을 쓸 수 있어요.");
-  if (stateOf(c, now) === "ended") return fail("끝난 챌린지예요. 지난 글은 계속 볼 수 있어요.");
+  if (!c || !user) return fail("로그인하면 글을 쓸 수 있어요");
+  if (stateOf(c, now) === "ended") return fail("끝난 챌린지예요. 지난 글은 계속 볼 수 있어요");
   const isInstructor = user.role === "instructor" && c.instructor.name === user.name;
-  if (kind === "공지" && !isInstructor) return fail("공지는 강사만 올릴 수 있어요.");
-  if (kind !== "공지" && !isMemberOf(userId, challengeId) && !isInstructor) return fail("신청한 참여자만 글을 쓸 수 있어요.");
+  if (kind === "공지" && !isInstructor) return fail("공지는 강사만 올릴 수 있어요");
+  if (kind !== "공지" && !isMemberOf(userId, challengeId) && !isInstructor) return fail("신청한 참여자만 글을 쓸 수 있어요");
   const problem = checkPostText(opts.title, body);
   if (problem) return fail(problem);
   const id = nextId();
@@ -470,11 +470,11 @@ export function editPost(
   now: Date,
 ): Result {
   const post = state().posts.find((p) => p.id === postId);
-  if (!post) return fail("글을 찾을 수 없어요.");
-  if (post.authorId !== userId) return fail("내가 쓴 글만 고칠 수 있어요.");
-  if (post.kind === "인증") return fail("인증 글은 Day 화면에서 고칠 수 있어요.");
+  if (!post) return fail("글을 찾을 수 없어요");
+  if (post.authorId !== userId) return fail("내가 쓴 글만 고칠 수 있어요");
+  if (post.kind === "인증") return fail("인증 글은 Day 화면에서 고칠 수 있어요");
   const c = findChallenge(post.challengeId);
-  if (c && stateOf(c, now) === "ended") return fail("끝난 챌린지의 글은 고칠 수 없어요.");
+  if (c && stateOf(c, now) === "ended") return fail("끝난 챌린지의 글은 고칠 수 없어요");
   const problem = checkPostText(input.title, input.body);
   if (problem) return fail(problem);
   if (post.kind !== "공지") post.kind = input.kind;
@@ -488,12 +488,12 @@ export function editPost(
 export function deletePost(userId: string, postId: string): Result {
   const s = state();
   const post = s.posts.find((p) => p.id === postId);
-  if (!post) return fail("이미 삭제된 글이에요.");
+  if (!post) return fail("이미 삭제된 글이에요");
   const user = getUser(userId);
   const c = findChallenge(post.challengeId);
   const isInstructor = !!user && !!c && user.role === "instructor" && c.instructor.name === user.name;
-  if (post.authorId !== userId && !isInstructor) return fail("내가 쓴 글만 삭제할 수 있어요.");
-  if (post.kind === "인증") return fail("인증 글은 Day 화면에서 관리해요.");
+  if (post.authorId !== userId && !isInstructor) return fail("내가 쓴 글만 삭제할 수 있어요");
+  if (post.kind === "인증") return fail("인증 글은 Day 화면에서 관리해요");
   const keys = new Set([
     ...s.ledger.filter((r) => r.sourceKey.startsWith(`like:${postId}:`)).map((r) => r.sourceKey),
     ...post.comments.flatMap((cm) => s.ledger.filter((r) => r.sourceKey.startsWith(`comment:${cm.id}:`)).map((r) => r.sourceKey)),
@@ -509,8 +509,8 @@ export function deletePost(userId: string, postId: string): Result {
 
 export function toggleLike(userId: string, postId: string): Result<{ liked: boolean; count: number }> {
   const post = state().posts.find((p) => p.id === postId);
-  if (!post) return fail("글을 찾을 수 없어요.");
-  if (!isMemberOf(userId, post.challengeId)) return fail("신청한 참여자만 좋아요를 누를 수 있어요.");
+  if (!post) return fail("글을 찾을 수 없어요");
+  if (!isMemberOf(userId, post.challengeId)) return fail("신청한 참여자만 좋아요를 누를 수 있어요");
   const s = state();
   const key = `like:${postId}:${userId}`;
   const liked = post.likes.includes(userId);
@@ -530,12 +530,12 @@ export function toggleLike(userId: string, postId: string): Result<{ liked: bool
 
 export function addComment(userId: string, postId: string, body: string, now: Date): Result<string> {
   const post = state().posts.find((p) => p.id === postId);
-  if (!post) return fail("글을 찾을 수 없어요.");
-  if (!isMemberOf(userId, post.challengeId)) return fail("신청한 참여자만 댓글을 쓸 수 있어요.");
+  if (!post) return fail("글을 찾을 수 없어요");
+  if (!isMemberOf(userId, post.challengeId)) return fail("신청한 참여자만 댓글을 쓸 수 있어요");
   const c = findChallenge(post.challengeId);
-  if (c && stateOf(c, now) === "ended") return fail("끝난 챌린지예요. 지난 글은 계속 볼 수 있어요.");
+  if (c && stateOf(c, now) === "ended") return fail("끝난 챌린지예요. 지난 글은 계속 볼 수 있어요");
   const text = body.trim();
-  if (text.length < 1 || text.length > 500) return fail("댓글은 1자 이상 500자 이하로 써 주세요.");
+  if (text.length < 1 || text.length > 500) return fail("댓글은 1자 이상 500자 이하로 써 주세요");
   const id = nextId();
   post.comments.push({ id, authorId: userId, body: text, createdAt: now.toISOString() });
   // 댓글 적립: 본인 글 제외, 하루 최대 5개 (BP-POINT-001)

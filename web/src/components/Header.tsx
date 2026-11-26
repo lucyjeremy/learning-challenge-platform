@@ -39,13 +39,13 @@ export async function Header() {
                 </abbr>
               </span>
               <form action={logoutAction}>
-                <button type="submit" className="text-[13px] text-grey-40 hover:text-grey-0">로그아웃</button>
+                <button type="submit" className="inline-flex min-h-11 items-center text-[13px] text-grey-40 hover:text-grey-0">로그아웃</button>
               </form>
             </>
           ) : (
             <>
-              <Link href="/login" className="text-grey-20 hover:text-grey-0">로그인</Link>
-              <Link href="/signup" className="rounded-sm bg-blue-50 px-3 py-1.5 text-[13px] font-bold">회원가입</Link>
+              <Link href="/login" className="inline-flex min-h-11 items-center text-grey-20 hover:text-grey-0">로그인</Link>
+              <Link href="/signup" className="inline-flex min-h-11 items-center rounded-sm bg-blue-50 px-3 text-[13px] font-bold">회원가입</Link>
             </>
           )}
         </nav>

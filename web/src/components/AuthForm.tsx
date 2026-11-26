@@ -69,7 +69,7 @@ export function LoginForm() {
       </div>
 
       <p className="mt-5 text-center text-[13px] text-grey-30">
-        처음 왔나요? <Link href="/signup" className="text-grey-0 underline-offset-2 hover:underline">회원가입</Link>
+        처음 왔나요? <Link href="/signup" className="inline-flex min-h-11 items-center text-grey-0 underline-offset-2 hover:underline">회원가입</Link>
       </p>
     </form>
   );
@@ -153,7 +153,7 @@ export function SignupForm() {
       {error && <ServerError message={error} />}
 
       <p className="mt-5 text-center text-[13px] text-grey-30">
-        이미 가입했나요? <Link href="/login" className="text-grey-0 underline-offset-2 hover:underline">로그인</Link>
+        이미 가입했나요? <Link href="/login" className="inline-flex min-h-11 items-center text-grey-0 underline-offset-2 hover:underline">로그인</Link>
       </p>
     </form>
   );

@@ -37,10 +37,10 @@ export default async function DayPage({ params }: PageProps<"/c/[id]/day/[n]">) 
   const nav = (
     <div className="mt-8 flex justify-between text-[14px]">
       {n > 1 ? (
-        <Link href={`/c/${id}/day/${n - 1}`} className="text-grey-30 hover:text-grey-0">← Day {n - 1}</Link>
+        <Link href={`/c/${id}/day/${n - 1}`} className="inline-flex min-h-11 items-center text-grey-30 hover:text-grey-0">← Day {n - 1}</Link>
       ) : <span />}
       {(n < today || instructor) && n < c.days ? (
-        <Link href={`/c/${id}/day/${n + 1}`} className="text-grey-30 hover:text-grey-0">Day {n + 1} →</Link>
+        <Link href={`/c/${id}/day/${n + 1}`} className="inline-flex min-h-11 items-center text-grey-30 hover:text-grey-0">Day {n + 1} →</Link>
       ) : <span />}
     </div>
   );

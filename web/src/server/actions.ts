@@ -77,13 +77,13 @@ export async function signupAction(input: {
 
 export async function enrollAction(challengeId: string): Promise<Result<{ enrollmentId: string }>> {
   const uid = await currentUserId();
-  if (!uid) return { ok: false, message: "로그인하면 신청할 수 있어요." };
+  if (!uid) return { ok: false, message: "로그인하면 신청할 수 있어요" };
   return mutate(() => enroll(uid, challengeId, new Date()));
 }
 
 export async function cancelEnrollmentAction(challengeId: string): Promise<Result> {
   const uid = await currentUserId();
-  if (!uid) return { ok: false, message: "로그인이 필요해요." };
+  if (!uid) return { ok: false, message: "로그인이 필요해요" };
   return mutate(() => cancelEnrollment(uid, challengeId, new Date()));
 }
 
@@ -93,7 +93,7 @@ export async function submitProofAction(
   payload: ProofPayload & { visibility: "public" | "private" },
 ): Promise<Result<SubmitOutcome>> {
   const uid = await currentUserId();
-  if (!uid) return { ok: false, message: "로그인이 필요해요." };
+  if (!uid) return { ok: false, message: "로그인이 필요해요" };
   return mutate(() => submitProof(uid, challengeId, dayNo, payload, new Date()));
 }
 
@@ -101,30 +101,30 @@ export type PostInput = { kind: "질문" | "자유"; title: string; body: string
 
 export async function createPostAction(challengeId: string, input: PostInput): Promise<Result<string>> {
   const uid = await currentUserId();
-  if (!uid) return { ok: false, message: "로그인이 필요해요." };
+  if (!uid) return { ok: false, message: "로그인이 필요해요" };
   return mutate(() => createPost(uid, challengeId, input.kind, input.body, new Date(), { title: input.title }));
 }
 
 export async function editPostAction(postId: string, input: PostInput): Promise<Result> {
   const uid = await currentUserId();
-  if (!uid) return { ok: false, message: "로그인이 필요해요." };
+  if (!uid) return { ok: false, message: "로그인이 필요해요" };
   return mutate(() => editPost(uid, postId, input, new Date()));
 }
 
 export async function deletePostAction(postId: string): Promise<Result> {
   const uid = await currentUserId();
-  if (!uid) return { ok: false, message: "로그인이 필요해요." };
+  if (!uid) return { ok: false, message: "로그인이 필요해요" };
   return mutate(() => deletePost(uid, postId));
 }
 
 export async function toggleLikeAction(postId: string): Promise<Result<{ liked: boolean; count: number }>> {
   const uid = await currentUserId();
-  if (!uid) return { ok: false, message: "로그인이 필요해요." };
+  if (!uid) return { ok: false, message: "로그인이 필요해요" };
   return mutate(() => toggleLike(uid, postId));
 }
 
 export async function addCommentAction(postId: string, body: string): Promise<Result<string>> {
   const uid = await currentUserId();
-  if (!uid) return { ok: false, message: "로그인이 필요해요." };
+  if (!uid) return { ok: false, message: "로그인이 필요해요" };
   return mutate(() => addComment(uid, postId, body, new Date()));
 }

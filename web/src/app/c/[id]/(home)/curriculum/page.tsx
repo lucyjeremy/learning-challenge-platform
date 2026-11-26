@@ -52,7 +52,7 @@ export default async function ClassroomPage({ params }: PageProps<"/c/[id]/curri
       ) : (
       <section aria-labelledby="continue" className="rounded-md bg-grey-90 p-5 sm:p-6">
         <p id="continue" className="text-[13px] font-bold text-accent-soft">
-          {todayStatus === "인정" ? "오늘 인증 완료" : "이어서 하기"}
+          {todayStatus === "인정" ? "오늘 인증을 마쳤어요" : "이어서 하기"}
         </p>
         <p className="mt-1 text-[13px] text-grey-40 tabular-nums">
           Day {today} · {fmtDate(addDays(c.startDate, today - 1))}
@@ -140,7 +140,7 @@ export default async function ClassroomPage({ params }: PageProps<"/c/[id]/curri
                   Day {w.days[0]}–{w.days[w.days.length - 1]}
                 </span>
                 <span className="ml-auto text-[12px] text-grey-30 tabular-nums">
-                  {locked ? `${fmtDate(addDays(c.startDate, w.days[0] - 1))}에 열려요` : `${weekDone} / ${w.days.length} 완료`}
+                  {locked ? `${fmtDate(addDays(c.startDate, w.days[0] - 1))}에 열려요` : `${w.days.length}일 중 ${weekDone}일 인증`}
                 </span>
                 <svg viewBox="0 0 24 24" className="size-4 shrink-0 stroke-grey-40 transition-transform group-open:rotate-180" fill="none" strokeWidth={2} aria-hidden>
                   <path d="M6 9l6 6 6-6" />
@@ -175,7 +175,7 @@ function Lesson({ id, n, title, date, today, status }: { id: string; n: number; 
     <>
       <StatusIcon locked={locked} isToday={isToday} status={status} />
       <span className="min-w-0 flex-1">
-        <span className={`block truncate text-[14px] ${locked ? "text-grey-40" : ""} ${isToday ? "font-bold" : ""}`}>
+        <span className={`block text-[14px] break-keep ${locked ? "text-grey-40" : ""} ${isToday ? "font-bold" : ""}`}>
           <span className="mr-2 text-[12px] font-bold text-grey-40 tabular-nums">Day {n}</span>
           {title}
         </span>
@@ -226,7 +226,7 @@ function StatusIcon({ locked, isToday, status }: { locked: boolean; isToday: boo
 
 function StatusText({ locked, isToday, status }: { locked: boolean; isToday: boolean; status: Status }) {
   if (locked) return <span className="sr-only">잠김</span>;
-  if (status === "인정") return <span className="shrink-0 text-[12px] text-grey-30">인증 완료</span>;
+  if (status === "인정") return <span className="shrink-0 text-[12px] text-grey-30">인증했어요</span>;
   if (status === "강사 확인 중") return <span className="shrink-0 text-[12px] text-grey-30">확인 중</span>;
   if (status === "놓침") return <span className="shrink-0 text-[12px] text-grey-40">놓쳤어요</span>;
   if (isToday) return <span className="shrink-0 rounded-sm bg-blue-50 px-2.5 py-1 text-[12px] font-bold">오늘 · 인증하기</span>;

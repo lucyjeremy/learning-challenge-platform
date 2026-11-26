@@ -37,7 +37,7 @@ export async function TodayMission({ id, compact = false }: { id: string; compac
           <>
             <Link
               href={`/c/${c.id}/day/${day}`}
-              className="inline-flex h-11 items-center rounded-sm bg-blue-50 px-5 text-[14px] font-bold"
+              className={`inline-flex h-11 items-center rounded-sm px-5 text-[14px] font-bold ${compact ? "border border-grey-50" : "bg-blue-50"}`}
             >
               미션하러 가기
             </Link>

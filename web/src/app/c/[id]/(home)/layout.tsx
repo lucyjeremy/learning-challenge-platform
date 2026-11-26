@@ -89,7 +89,7 @@ export default async function ChallengeHomeLayout({ children, params }: LayoutPr
           <section className="rounded-md bg-grey-90 p-4">
             <div className="flex items-center justify-between">
               <h2 className="text-[13px] text-grey-30">이번 주 순위</h2>
-              <Link href={`/c/${id}/leaderboard`} className="text-[13px] text-accent-soft hover:underline">
+              <Link href={`/c/${id}/leaderboard`} className="inline-flex min-h-11 items-center text-[13px] text-accent-soft hover:underline">
                 전체 보기
               </Link>
             </div>

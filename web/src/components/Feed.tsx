@@ -392,7 +392,7 @@ function PostEditor({
               disabled={!canSubmit}
               className="h-10 rounded-sm bg-blue-50 px-5 text-[14px] font-bold disabled:bg-grey-70 disabled:text-grey-40"
             >
-              {pending ? "저장하는 중" : editing ? "수정 완료" : "게시하기"}
+              {pending ? "저장하는 중" : editing ? "저장하기" : "게시하기"}
             </button>
           </div>
         </footer>
