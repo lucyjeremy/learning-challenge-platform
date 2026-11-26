@@ -20,8 +20,8 @@ export const metadata: Metadata = {
   description: "매일 강의 하나, 미션 하나. 같은 기수 동료와 함께 끝까지 완주하는 온라인 강의 챌린지.",
 };
 
-// Google 태그 관리자 컨테이너 ID (공개 값, 비밀 아님)
-const GTM_ID = "GTM-TDMX9TSW";
+// Google 애널리틱스 4 측정 ID (공개 값, 비밀 아님)
+const GA_ID = "G-M7JKKTBECS";
 
 export const viewport: Viewport = {
   themeColor: "#000000",
@@ -31,12 +31,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="ko" className={`${spoqa.variable} antialiased`}>
       <body className="flex min-h-dvh flex-col bg-grey-97 text-grey-0">
-        <Script id="gtm" strategy="afterInteractive">
-          {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${GTM_ID}');`}
+        <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
+        <Script id="ga4" strategy="afterInteractive">
+          {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_ID}');`}
         </Script>
-        <noscript>
-          <iframe src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`} height="0" width="0" style={{ display: "none", visibility: "hidden" }} />
-        </noscript>
         <a href="#main" className="skip-link">본문으로 건너뛰기</a>
         <Header />
         <main id="main" className="flex-1">{children}</main>
