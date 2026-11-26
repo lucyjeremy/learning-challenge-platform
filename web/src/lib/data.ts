@@ -290,6 +290,11 @@ export const challenges: Challenge[] = [
   },
 ];
 
+// Day 제목이 기간보다 적은 챌린지는 남은 Day를 "Day N 미션"으로 채워요 (DB 시드와 같은 규칙).
+for (const c of challenges) {
+  while (c.dayTitles.length < c.days) c.dayTitles.push(`Day ${c.dayTitles.length + 1} 미션`);
+}
+
 export function getChallenge(id: string) {
   return challenges.find((c) => c.id === id);
 }
@@ -398,53 +403,6 @@ print(total / len(scores))`,
 ];
 
 // 리더보드 (python-21). 같은 점수는 같은 순위예요.
-export type Row = { name: string; level: number; points: number; streak: number; me?: boolean };
-export const leaderboard: Record<"7일" | "30일" | "전체", Row[]> = {
-  "7일": [
-    { name: "오준호", level: 4, points: 82, streak: 7 },
-    { name: "이수민", level: 4, points: 82, streak: 7 },
-    { name: "한예린", level: 3, points: 74, streak: 6 },
-    { name: "정우진", level: 3, points: 71, streak: 6 },
-    { name: "박서연", level: 3, points: 66, streak: 5 },
-    { name: "김지은", level: 3, points: 61, streak: 3, me: true },
-    { name: "최도현", level: 2, points: 55, streak: 4 },
-    { name: "윤하은", level: 2, points: 48, streak: 2 },
-    { name: "강민재", level: 2, points: 40, streak: 0 },
-    { name: "임채원", level: 2, points: 33, streak: 1 },
-    { name: "서지호", level: 1, points: 15, streak: 0 },
-    { name: "문가영", level: 1, points: 0, streak: 0 },
-  ],
-  "30일": [
-    { name: "이수민", level: 4, points: 104, streak: 7 },
-    { name: "오준호", level: 4, points: 98, streak: 7 },
-    { name: "한예린", level: 3, points: 88, streak: 6 },
-    { name: "정우진", level: 3, points: 85, streak: 6 },
-    { name: "김지은", level: 3, points: 72, streak: 3, me: true },
-    { name: "박서연", level: 3, points: 72, streak: 5 },
-    { name: "최도현", level: 2, points: 61, streak: 4 },
-    { name: "윤하은", level: 2, points: 52, streak: 2 },
-    { name: "강민재", level: 2, points: 44, streak: 0 },
-    { name: "임채원", level: 2, points: 38, streak: 1 },
-    { name: "서지호", level: 1, points: 15, streak: 0 },
-    { name: "문가영", level: 1, points: 0, streak: 0 },
-  ],
-  "전체": [
-    { name: "이수민", level: 4, points: 104, streak: 7 },
-    { name: "오준호", level: 4, points: 98, streak: 7 },
-    { name: "한예린", level: 3, points: 88, streak: 6 },
-    { name: "정우진", level: 3, points: 85, streak: 6 },
-    { name: "김지은", level: 3, points: 72, streak: 3, me: true },
-    { name: "박서연", level: 3, points: 72, streak: 5 },
-    { name: "최도현", level: 2, points: 61, streak: 4 },
-    { name: "윤하은", level: 2, points: 52, streak: 2 },
-    { name: "강민재", level: 2, points: 44, streak: 0 },
-    { name: "임채원", level: 2, points: 38, streak: 1 },
-    { name: "서지호", level: 1, points: 15, streak: 0 },
-    { name: "문가영", level: 1, points: 0, streak: 0 },
-  ],
-};
-
-export const todayCheckins = { done: 19, total: 28 };
 
 export const missionDetail: Record<number, { minutes: number; mission: string; hint: string }> = {
   7: {

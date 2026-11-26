@@ -3,9 +3,9 @@ import { notFound, redirect } from "next/navigation";
 import { HomeTabs } from "@/components/HomeTabs";
 import { TodayMission } from "@/components/TodayMission";
 import { Avatar } from "@/components/ui";
-import { challenges, getChallenge, leaderboard, todayCheckins } from "@/lib/data";
+import { challenges, getChallenge } from "@/lib/data";
 import { currentUserId } from "@/server/actions";
-import { dayStatusesFor, isMemberOf } from "@/server/store";
+import { dayStatusesFor, isInstructorOf, isMemberOf, leaderboardFor, todayCheckinsFor } from "@/server/store";
 import { currentDay, fmtDate, requiredCheckins } from "@/lib/format";
 
 export function generateStaticParams() {
@@ -16,17 +16,19 @@ export default async function ChallengeHomeLayout({ children, params }: LayoutPr
   const { id } = await params;
   const c = getChallenge(id);
   if (!c) notFound();
-  // 신청하지 않은 사람은 소개 페이지로 보내요 (BP-CONTENT-001-1)
+  // 신청하지 않은 사람은 소개 페이지로 보내요. 그 챌린지의 강사는 들어올 수 있어요 (BP-CONTENT-001)
   const uid = await currentUserId();
-  if (!isMemberOf(uid, id)) redirect(`/c/${id}`);
+  const member = isMemberOf(uid, id);
+  if (!member && !isInstructorOf(uid, id)) redirect(`/c/${id}`);
 
   const statuses = Object.values(dayStatusesFor(uid, id));
   const done = statuses.filter((s) => s === "인정").length;
   const need = requiredCheckins(c);
   const today = currentDay(c);
   const pct = Math.round((done / need) * 100);
-  const top5 = leaderboard["7일"].slice(0, 5);
-  const rate = Math.round((todayCheckins.done / todayCheckins.total) * 100);
+  const top5 = leaderboardFor(id, uid)["7일"].slice(0, 5);
+  const todayCheckins = todayCheckinsFor(id);
+  const rate = todayCheckins.total ? Math.round((todayCheckins.done / todayCheckins.total) * 100) : 0;
 
   return (
     <div className="mx-auto max-w-content px-5 pt-6">
@@ -48,6 +50,8 @@ export default async function ChallengeHomeLayout({ children, params }: LayoutPr
         <div className="min-w-0">{children}</div>
 
         <aside aria-label="내 진행 요약" className="space-y-4 lg:sticky lg:top-[130px] lg:self-start">
+          {member ? (
+            <>
           <section className="rounded-md bg-grey-90 p-4">
             <h2 className="text-[13px] text-grey-30">내 진행률</h2>
             <p className="mt-1 text-[20px] font-bold tabular-nums">
@@ -67,6 +71,10 @@ export default async function ChallengeHomeLayout({ children, params }: LayoutPr
           </section>
 
           <TodayMission id={id} compact />
+            </>
+          ) : (
+            <p className="rounded-md bg-grey-90 p-4 text-[13px] text-grey-30">강사로 보고 있어요. 모든 Day를 볼 수 있고, 인증은 제출하지 않아요.</p>
+          )}
 
           <section className="rounded-md bg-grey-90 p-4">
             <h2 className="text-[13px] text-grey-30">오늘 인증한 사람</h2>
@@ -89,7 +97,7 @@ export default async function ChallengeHomeLayout({ children, params }: LayoutPr
               {top5.map((r) => {
                 const rank = top5.findIndex((x) => x.points === r.points) + 1;
                 return (
-                  <li key={r.name} className="flex items-center gap-2.5 text-[14px]">
+                  <li key={r.id} className="flex items-center gap-2.5 text-[14px]">
                     <span className="w-4 text-center text-[12px] font-bold text-grey-40 tabular-nums">{rank}</span>
                     <Avatar name={r.name} size={24} />
                     <span className="flex-1 truncate">{r.name}</span>

@@ -3,9 +3,9 @@
 // 키가 없으면 메모리에만 두고, 서버를 다시 켜면 시드 상태로 돌아가요.
 
 import { challenges, type Challenge, type DayStatus } from "@/lib/data";
-import { deadline, dayDate, isEarly, isOpen, kstDateOf, endDate as domainEnd } from "@/domain/day-calendar";
+import { addDays, deadline, dayDate, isEarly, isOpen, kstDateOf, kstMidnight, endDate as domainEnd } from "@/domain/day-calendar";
 import { POINTS, CHALLENGE_LIMITS } from "@/domain/constants";
-import { awardIfNew, netForSource, revokeIfAny, type PointLog } from "@/domain/points";
+import { awardIfNew, levelOf, netForSource, rankLeaderboard, revokeIfAny, type PointLog } from "@/domain/points";
 import { calculateStreak, expectedStreakBonuses, type DayRecord, type DayState } from "@/domain/streak";
 import { validateProof, type ProofPayload, type ProofType } from "@/domain/validation";
 
@@ -39,7 +39,7 @@ export type StorePost = {
   comments: { id: string; authorId: string; body: string; createdAt: string }[];
   pinned?: boolean;
 };
-export type LedgerRow = PointLog & { userId: string; challengeId: string };
+export type LedgerRow = PointLog & { userId: string; challengeId: string; at?: string /* DB에서 불러온 행만 시각이 있음 */ };
 
 export type State = {
   users: User[];
@@ -216,6 +216,51 @@ export function pointsOf(userId: string, challengeId?: string): number {
     .reduce((sum, r) => sum + r.points, 0);
 }
 
+/** 그 챌린지의 강사인지 (강사 이름으로 연결, 시드 데이터 기준). */
+export function isInstructorOf(userId: string | null | undefined, challengeId: string): boolean {
+  const u = getUser(userId);
+  const c = findChallenge(challengeId);
+  return !!u && !!c && u.role === "instructor" && c.instructor.name === u.name;
+}
+
+export type BoardRow = { id: string; name: string; level: number; points: number; streak: number; me?: boolean };
+export type Period = "7일" | "30일" | "전체";
+
+/** 리더보드: 포인트 원장에서 기간별로 합산. 같은 점수는 먼저 도달한 사람이 위 (BP-POINT-004). */
+export function leaderboardFor(challengeId: string, viewerId: string | null, now = new Date()): Record<Period, BoardRow[]> {
+  const s = state();
+  const members = s.enrollments.filter((e) => e.challengeId === challengeId && e.status === "active");
+  const today = kstDateOf(now);
+  const since = (days: number) => kstMidnight(addDays(today, -(days - 1))).getTime();
+  const build = (from: number | null): BoardRow[] => {
+    const rows = members.map((e) => {
+      const logs = s.ledger.filter((r) => r.userId === e.userId && r.challengeId === challengeId && (from === null || !r.at || Date.parse(r.at) >= from));
+      const last = logs.map((r) => (r.at ? Date.parse(r.at) : now.getTime())).sort((a, b) => b - a)[0];
+      return { userId: e.userId, points: logs.reduce((sum, r) => sum + r.points, 0), lastChangedAt: last ? new Date(last) : null };
+    });
+    return rankLeaderboard(rows).map((r) => ({
+      id: r.userId,
+      name: getUser(r.userId)?.name ?? "알 수 없음",
+      level: levelOf(pointsOf(r.userId)),
+      points: r.points,
+      streak: streakOf(r.userId, challengeId).current,
+      me: r.userId === viewerId || undefined,
+    }));
+  };
+  return { "7일": build(since(7)), "30일": build(since(30)), 전체: build(null) };
+}
+
+/** 오늘(KST) 그 Day를 인증한 참여자 수 / 참여자 수 */
+export function todayCheckinsFor(challengeId: string, now = new Date()): { done: number; total: number } {
+  const c = findChallenge(challengeId);
+  const s = state();
+  const members = s.enrollments.filter((e) => e.challengeId === challengeId && e.status === "active");
+  if (!c) return { done: 0, total: members.length };
+  const dayNo = Math.round((kstMidnight(kstDateOf(now)).getTime() - kstMidnight(c.startDate).getTime()) / 86400000) + 1;
+  const done = members.filter((e) => s.submissions.some((x) => x.enrollmentId === e.id && x.dayNo === dayNo)).length;
+  return { done, total: members.length };
+}
+
 export function streakOf(userId: string, challengeId: string): { current: number; longest: number } {
   const e = activeEnrollment(userId, challengeId);
   return e ? streakFor(e.id) : { current: 0, longest: 0 };
@@ -319,7 +364,7 @@ export function submitProof(
   if (dayNo < 1 || dayNo > c.days) return fail("없는 Day예요.");
   const timing = { startDate: c.startDate, durationDays: c.days, unlockMode: "daily" as const };
   if (!isOpen(timing, dayNo, now)) return fail("아직 열리지 않은 Day예요.");
-  if (now.getTime() >= deadline(c.startDate, dayNo).getTime()) return fail("아쉽지만 인증 마감이 지났어요");
+  if (now.getTime() >= deadline(c.startDate, dayNo).getTime()) return fail("아쉽지만 인증 마감(23:59)이 지났어요");
   if (mySubmission(userId, challengeId, dayNo)) return fail("이 Day는 이미 인증했어요. 내용을 고칠까요?");
 
   const problems = validateProof(PROOF_TYPE[c.format], payload);

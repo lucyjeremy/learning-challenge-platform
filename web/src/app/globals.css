@@ -14,7 +14,7 @@
   --color-grey-90: #252525;
   --color-grey-97: #121212;
   --color-grey-100: #000000;
-  --color-red-50: #ed2040;
+  --color-red-50: #e01c3a; /* 흰 글자 대비 4.78:1 (WCAG AA 4.5 이상) */
   --color-accent-soft: #f9858d;
   --color-blue-50: #4200ff;
   --color-caption: #cccccc;

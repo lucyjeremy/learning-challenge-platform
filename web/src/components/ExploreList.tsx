@@ -13,7 +13,7 @@ type Sort = (typeof SORTS)[number];
 const PAGE = 12;
 
 function arrange(all: Challenge[], category: string | null, q: string, sort: Sort) {
-  let list = all.filter((c) => phase(c) !== "종료");
+  let list = all.filter((c) => phase(c) === "모집 중");
   if (category) list = list.filter((c) => c.category === category);
   const query = q.trim().toLowerCase();
   if (query) {

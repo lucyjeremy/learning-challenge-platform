@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { CheckinForm } from "@/components/CheckinForm";
 import { challenges, getChallenge, missionDetail } from "@/lib/data";
 import { currentUserId } from "@/server/actions";
-import { dayStatusesFor, mySubmission, streakOf, submissionPoints } from "@/server/store";
+import { dayStatusesFor, isInstructorOf, mySubmission, streakOf, submissionPoints } from "@/server/store";
 import { addDays, currentDay, fmtDate } from "@/lib/format";
 
 export const dynamicParams = false;
@@ -31,19 +31,21 @@ export default async function DayPage({ params }: PageProps<"/c/[id]/day/[n]">) 
   const sub = uid ? mySubmission(uid, id, n) : undefined;
   const streak = uid ? streakOf(uid, id).current : 0;
   const detail = missionDetail[n];
+  // 그 챌린지의 강사는 모든 Day를 볼 수 있고, 인증은 제출하지 않아요 (BP-CONTENT-001, BP-SUB-004-6)
+  const instructor = isInstructorOf(uid, id);
 
   const nav = (
     <div className="mt-8 flex justify-between text-[14px]">
       {n > 1 ? (
         <Link href={`/c/${id}/day/${n - 1}`} className="text-grey-30 hover:text-grey-0">← Day {n - 1}</Link>
       ) : <span />}
-      {n < today ? (
+      {(n < today || instructor) && n < c.days ? (
         <Link href={`/c/${id}/day/${n + 1}`} className="text-grey-30 hover:text-grey-0">Day {n + 1} →</Link>
       ) : <span />}
     </div>
   );
 
-  if (n > today) {
+  if (n > today && !instructor) {
     return (
       <div className="rounded-md bg-grey-90 px-6 py-14 text-center">
         <p className="text-[12px] font-bold text-grey-40">Day {n}</p>
@@ -107,6 +109,8 @@ export default async function DayPage({ params }: PageProps<"/c/[id]/day/[n]">) 
               {n === today ? "내일 00:00에 다음 Day가 열려요." : ""}
             </p>
           </div>
+        ) : instructor ? (
+          <p className="mt-3 rounded-md bg-grey-90 px-4 py-4 text-[14px] text-grey-30">강사는 인증을 제출하지 않아요. 참여자 인증은 피드에서 볼 수 있어요.</p>
         ) : n < today ? (
           <p className="mt-3 rounded-md bg-grey-90 px-4 py-4 text-[14px] text-grey-30">
             Day {n} 인증 마감이 지났어요. 강의와 미션은 계속 볼 수 있어요.

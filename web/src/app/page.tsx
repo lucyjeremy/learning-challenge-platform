@@ -5,8 +5,8 @@ import { ExploreList } from "@/components/ExploreList";
 import { TodayMission } from "@/components/TodayMission";
 import { challenges, TODAY } from "@/lib/data";
 import { currentUserId } from "@/server/actions";
-import { getUser, isMemberOf } from "@/server/store";
-import { daysBetween, phase } from "@/lib/format";
+import { dayStatusesFor, getUser, isMemberOf, streakOf } from "@/server/store";
+import { currentDay, daysBetween, phase, requiredCheckins } from "@/lib/format";
 
 export default async function HomePage() {
   const user = getUser(await currentUserId());
@@ -14,7 +14,21 @@ export default async function HomePage() {
     .filter((c) => phase(c) === "모집 중" && daysBetween(TODAY, c.startDate) <= 7)
     .sort((a, b) => a.startDate.localeCompare(b.startDate));
   const running = challenges.filter((c) => phase(c) === "진행 중");
-  const mine = user ? running.filter((c) => isMemberOf(user.id, c.id)).map((c) => c.id) : [];
+  // 내 챌린지: 진행 중(오늘 미인증 먼저) → 시작 예정 순서
+  const checkedToday = (id: string, day: number) => {
+    const s = user ? dayStatusesFor(user.id, id)[day] : undefined;
+    return s === "인정" || s === "강사 확인 중";
+  };
+  const myRunning = user
+    ? running
+        .filter((c) => isMemberOf(user.id, c.id))
+        .sort((a, b) => Number(checkedToday(a.id, currentDay(a))) - Number(checkedToday(b.id, currentDay(b))))
+    : [];
+  const myUpcoming = user
+    ? challenges.filter((c) => phase(c) === "모집 중" && isMemberOf(user.id, c.id)).sort((a, b) => a.startDate.localeCompare(b.startDate))
+    : [];
+  const mine = [...myRunning, ...myUpcoming].map((c) => c.id);
+  const streakTarget = myRunning[0];
 
   return (
     <div className="mx-auto max-w-content px-5">
@@ -28,11 +42,11 @@ export default async function HomePage() {
               {mine.map((id) => (
                 <TodayMission key={id} id={id} />
               ))}
-              <MyStreak />
+              {user && streakTarget && <MyStreak userId={user.id} id={streakTarget.id} />}
             </div>
           ) : (
             <p className="mt-3 rounded-md bg-grey-90 px-5 py-5 text-[14px] text-grey-30">
-              아직 진행 중인 챌린지가 없어요. 아래에서 이번 주에 시작하는 챌린지를 골라 보세요.
+              아직 신청한 챌린지가 없어요. 아래에서 이번 주에 시작하는 챌린지를 골라 보세요.
             </p>
           )}
         </section>
@@ -79,7 +93,7 @@ export default async function HomePage() {
         <Suspense
           fallback={
             <ul className="mt-[58px] grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-              {challenges.filter((c) => phase(c) !== "종료").map((c) => (
+              {challenges.filter((c) => phase(c) === "모집 중").map((c) => (
                 <li key={c.id}>
                   <ChallengeCard c={c} />
                 </li>
@@ -94,26 +108,35 @@ export default async function HomePage() {
   );
 }
 
-function MyStreak() {
+/** 내 기록: 가장 먼저 보이는 진행 중 챌린지의 실제 스트릭·인증 수 */
+function MyStreak({ userId, id }: { userId: string; id: string }) {
+  const c = challenges.find((x) => x.id === id)!;
+  const statuses = dayStatusesFor(userId, id);
+  const done = Object.values(statuses).filter((s) => s === "인정").length;
+  const opened = Math.min(currentDay(c), c.days);
+  const left = Math.max(requiredCheckins(c) - done, 0);
   return (
     <div className="flex flex-col justify-between rounded-md bg-grey-90 p-5">
       <div>
-        <p className="text-[13px] text-grey-30">21일 파이썬 기초 · 내 기록</p>
+        <p className="text-[13px] text-grey-30">{c.title} · 내 기록</p>
         <p className="mt-2 text-[28px] leading-none font-bold tabular-nums">
-          🔥 3<span className="ml-1 text-[14px] font-normal text-grey-30">일 연속</span>
+          🔥 {streakOf(userId, id).current}
+          <span className="ml-1 text-[14px] font-normal text-grey-30">일 연속</span>
         </p>
       </div>
       <dl className="mt-4 grid grid-cols-2 gap-2 text-[13px]">
         <div>
           <dt className="text-grey-40">인증</dt>
-          <dd className="font-bold tabular-nums">5 / 6일</dd>
+          <dd className="font-bold tabular-nums">
+            {done} / {opened}일
+          </dd>
         </div>
         <div>
           <dt className="text-grey-40">완주까지</dt>
-          <dd className="font-bold tabular-nums">12일 더</dd>
+          <dd className="font-bold tabular-nums">{left === 0 ? "기준 달성" : `${left}일 더`}</dd>
         </div>
       </dl>
-      <Link href="/c/python-21/feed" className="mt-4 text-[14px] text-accent-soft hover:underline">
+      <Link href={`/c/${id}/feed`} className="mt-4 text-[14px] text-accent-soft hover:underline">
         챌린지 홈으로 →
       </Link>
     </div>

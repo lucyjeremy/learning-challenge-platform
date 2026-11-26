@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import type { Row } from "@/lib/data";
+import type { BoardRow as Row, Period } from "@/server/store";
 import { Avatar } from "./ui";
 
-type Period = "7일" | "30일" | "전체";
 const PERIODS: Period[] = ["7일", "30일", "전체"];
 
 /** 같은 점수는 같은 순위, 다음 순위는 건너뛰어요 (1, 1, 3) */
@@ -64,7 +63,7 @@ export function Leaderboard({ data }: { data: Record<Period, Row[]> }) {
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.name} className={`border-b border-grey-80 last:border-0 ${r.me ? "bg-grey-80" : ""}`}>
+                <tr key={r.id} className={`border-b border-grey-80 last:border-0 ${r.me ? "bg-grey-80" : ""}`}>
                   <td className="py-3 pl-4 font-bold tabular-nums">{r.rank}</td>
                   <td className="py-3">
                     <span className="flex items-center gap-2.5">

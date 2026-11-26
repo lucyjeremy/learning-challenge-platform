@@ -54,7 +54,7 @@ export async function loadState(): Promise<State> {
     db.from("posts").select("id, challenge_id, author_id, type, title, body, submission_id, pinned_at, edited_at, created_at").is("hidden_at", null).order("created_at"),
     db.from("likes").select("post_id, user_id"),
     db.from("comments").select("id, post_id, author_id, body, created_at").is("hidden_at", null).order("created_at"),
-    db.from("point_logs").select("user_id, challenge_id, points, source_key").order("created_at").order("id"),
+    db.from("point_logs").select("user_id, challenge_id, points, source_key, created_at").order("created_at").order("id"),
   ]);
   const slug = (id: string) => m.slugById.get(id) ?? id;
 
@@ -103,6 +103,7 @@ export async function loadState(): Promise<State> {
     challengeId: l.challenge_id ? slug(l.challenge_id) : "",
     points: l.points,
     sourceKey: l.source_key,
+    at: l.created_at,
   }));
   return { users, enrollments: enr, submissions: subs, posts: storePosts, ledger };
 }

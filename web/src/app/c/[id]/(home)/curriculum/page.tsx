@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { getChallenge } from "@/lib/data";
 import { addDays, currentDay, fmtDate, requiredCheckins } from "@/lib/format";
 import { currentUserId } from "@/server/actions";
-import { dayStatusesFor } from "@/server/store";
+import { dayStatusesFor, isInstructorOf } from "@/server/store";
 
 export const metadata: Metadata = { title: "내 강의실" };
 
@@ -19,7 +19,10 @@ export default async function ClassroomPage({ params }: PageProps<"/c/[id]/curri
   const c = getChallenge(id);
   if (!c) notFound();
   const today = currentDay(c);
-  const statuses = dayStatusesFor(await currentUserId(), id);
+  const uid = await currentUserId();
+  const statuses = dayStatusesFor(uid, id);
+  // 강사는 강의 목록의 모든 Day를 열어 볼 수 있어요
+  const listToday = isInstructorOf(uid, id) ? c.days : today;
   const done = Object.values(statuses).filter((s) => s === "인정").length;
   const missed = Object.values(statuses).filter((s) => s === "놓침").length;
   const need = requiredCheckins(c);
@@ -145,7 +148,7 @@ export default async function ClassroomPage({ params }: PageProps<"/c/[id]/curri
               </summary>
               <ol className="divide-y divide-grey-80 border-t border-grey-80">
                 {w.days.map((n) => (
-                  <Lesson key={n} id={id} n={n} title={c.dayTitles[n - 1]} date={addDays(c.startDate, n - 1)} today={today} status={statuses[n]} />
+                  <Lesson key={n} id={id} n={n} title={c.dayTitles[n - 1]} date={addDays(c.startDate, n - 1)} today={listToday} status={statuses[n]} />
                 ))}
               </ol>
             </details>

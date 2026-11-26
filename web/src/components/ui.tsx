@@ -28,7 +28,7 @@ export function Thumb({ c, size = "md" }: { c: Challenge; size?: "md" | "lg" }) 
       style={{ backgroundColor: c.tone }}
       aria-hidden
     >
-      <span className="absolute top-3 left-4 text-[12px] font-bold text-white-50">{c.category}</span>
+      <span className="absolute top-3 left-4 text-[12px] font-bold text-white/80">{c.category}</span>
       <span
         className={`absolute bottom-2 left-3 leading-[0.82] font-bold tracking-[-0.04em] text-grey-0 ${
           size === "lg" ? "text-[clamp(96px,14vw,150px)]" : "text-[96px]"

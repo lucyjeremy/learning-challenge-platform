@@ -26,7 +26,8 @@ export default async function AboutPage({ params }: PageProps<"/c/[id]">) {
   const left = c.capacity - c.enrolled;
   const dDay = daysBetween(TODAY, c.startDate);
   const need = requiredCheckins(c);
-  const member = isMemberOf(await currentUserId(), c.id);
+  const uid = await currentUserId();
+  const member = isMemberOf(uid, c.id);
   const preview = c.dayTitles.slice(0, 7);
 
   return (
@@ -117,7 +118,7 @@ export default async function AboutPage({ params }: PageProps<"/c/[id]">) {
                 <Row label="진행" value={`Day ${daysBetween(c.startDate, TODAY) + 1} / ${c.days}`} />
               )}
             </dl>
-            <Cta id={c.id} member={member} phase={p} full={left <= 0} start={fmtDate(c.startDate)} />
+            <Cta id={c.id} member={member} loggedIn={!!uid} phase={p} full={left <= 0} start={fmtDate(c.startDate)} />
             {p === "모집 중" && left > 0 && !member && (
               <p className="mt-3 text-[12px] text-grey-30">
                 모집은 {fmtDate(addDays(c.startDate, -1))} 23:59 (한국 시간)에 마감돼요.
@@ -139,11 +140,13 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Cta({ id, member, phase, full, start }: { id: string; member: boolean; phase: string; full: boolean; start: string }) {
+function Cta({ id, member, loggedIn, phase, full, start }: { id: string; member: boolean; loggedIn: boolean; phase: string; full: boolean; start: string }) {
   const cls = "mt-5 w-full";
   if (member) return <Button href={`/c/${id}/feed`} className={cls}>챌린지 홈으로</Button>;
   if (phase !== "모집 중") return <Button disabled className={cls}>모집이 끝났어요</Button>;
   if (full) return <Button disabled className={cls}>정원 마감</Button>;
+  // 비회원은 로그인 화면으로 보내고, 로그인 뒤 이 소개 페이지로 돌아와요 (BP-ENR-001-1)
+  if (!loggedIn) return <Button href={`/login?next=${encodeURIComponent(`/c/${id}`)}`} className={cls}>로그인하고 신청하기</Button>;
   return <EnrollButton id={id} startDate={start} className={cls} />;
 }
 

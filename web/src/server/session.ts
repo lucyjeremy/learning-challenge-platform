@@ -53,6 +53,10 @@ export async function mutate<T>(run: () => Result<T>): Promise<Result<T>> {
   try {
     await persist(before, currentState());
   } catch (e) {
+    const msg = String((e as Error).message ?? e);
+    // DB가 마지막에 한 번 더 막은 경우 (동시 요청): 정원 초과, 중복 신청
+    if (msg.includes("CAPACITY_FULL")) return { ok: false, message: "정원이 다 찼어요. 비슷한 챌린지를 둘러볼까요?" };
+    if (msg.includes("one_active_enrollment")) return { ok: false, message: "이미 신청한 챌린지예요" };
     console.error("DB 저장 실패", e);
     return { ok: false, message: "저장하지 못했어요. 잠시 뒤 다시 해 주세요" };
   }

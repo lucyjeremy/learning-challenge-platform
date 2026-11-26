@@ -6,6 +6,9 @@ import {
   createPost,
   deletePost,
   editPost,
+  isInstructorOf,
+  leaderboardFor,
+  todayCheckinsFor,
   enroll,
   enrolledCount,
   pointsOf,
@@ -180,5 +183,28 @@ describe("피드 (BP-FEED, BP-POINT-001)", () => {
   it("종료된 챌린지에는 글을 쓸 수 없다", () => {
     const r = createPost("u-student", "python-21", "자유", "지난 챌린지 글", kst("2027-01-01T10:00:00"));
     expect(r.ok).toBe(false);
+  });
+});
+
+describe("리더보드·오늘 인증 수 (BP-POINT-004, TC-FN-LB)", () => {
+  it("원장 합계로 순위를 매기고, 0점 참여자와 내 순위가 보인다", () => {
+    enroll("u-student", "figma-14", NOW);
+    submitProof("u-student", PY, 7, { body: LONG_TEXT, visibility: "private" }, NOW);
+    const board = leaderboardFor(PY, "u-student", NOW)["전체"];
+    expect(board[0]).toMatchObject({ id: "u-student", points: 15, me: true });
+    const figma = leaderboardFor("figma-14", "u-student", NOW)["전체"];
+    expect(figma[0]).toMatchObject({ id: "u-student", points: 0, me: true });
+  });
+
+  it("오늘 인증한 참여자 수 / 참여자 수", () => {
+    expect(todayCheckinsFor(PY, NOW)).toEqual({ done: 0, total: 1 });
+    submitProof("u-student", PY, 7, { body: LONG_TEXT, visibility: "private" }, NOW);
+    expect(todayCheckinsFor(PY, NOW)).toEqual({ done: 1, total: 1 });
+  });
+
+  it("강사 확인은 그 챌린지의 강사만 참", () => {
+    expect(isInstructorOf("u-instructor", PY)).toBe(true);
+    expect(isInstructorOf("u-instructor", "figma-14")).toBe(false);
+    expect(isInstructorOf("u-student", PY)).toBe(false);
   });
 });
