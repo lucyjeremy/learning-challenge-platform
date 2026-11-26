@@ -4,7 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-This repository has no code yet. It is the workspace for **챌린지업 (ChallengeUp)**, an online lecture-challenge site that is planned but not built. Update this file with real build, lint and test commands once the project is scaffolded.
+This is the workspace for **챌린지업 (ChallengeUp)**, an online lecture-challenge site. The front end lives in `web/` (Next.js 16 App Router, Tailwind v4). It runs on seed data in `web/src/lib/data.ts`; Supabase is not connected yet, so enrolling, posting and check-ins are kept in the browser only.
+
+- Install: `npm install --prefix web`
+- Dev server: `npm run dev --prefix web`
+- Build: `npm run build --prefix web` (all pages are prerendered statically)
+- Lint: `npm run lint --prefix web`
+- Next.js 16 differs from older versions; read `web/node_modules/next/dist/docs/` before using an API you are unsure of.
 
 ## Product concept
 

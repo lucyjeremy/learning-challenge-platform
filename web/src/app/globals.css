@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+/* 챌린지업 디자인 시스템 토큰 (DESIGN.md · 디자인 시스템 아티팩트와 같은 값) */
+@theme {
+  --color-*: initial;
+  --color-grey-0: #ffffff;
+  --color-grey-10: #f2f2f2;
+  --color-grey-20: #e0e0e0;
+  --color-grey-30: #c5c5c5;
+  --color-grey-40: #a0a0a0;
+  --color-grey-50: #898989;
+  --color-grey-70: #4d4d4d;
+  --color-grey-80: #333333;
+  --color-grey-90: #252525;
+  --color-grey-97: #121212;
+  --color-grey-100: #000000;
+  --color-red-50: #ed2040;
+  --color-accent-soft: #f9858d;
+  --color-blue-50: #4200ff;
+  --color-caption: #cccccc;
+  --color-tag-text: #6c6c6c;
+  --color-overlay: rgb(0 0 0 / 0.5);
+  --color-white-30: rgb(255 255 255 / 0.3);
+  --color-white-50: rgb(255 255 255 / 0.5);
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --font-sans: var(--font-spoqa), "Apple SD Gothic Neo", "Segoe UI", sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+
+  --radius-sm: 4px;
+  --radius-chip: 5px;
+  --radius-md: 10px;
+  --radius-icon: 19px;
+  --radius-lg: 20px;
+  --radius-pill: 104px;
+
+  --container-content: 1120px;
+  --container-wide: 1440px;
+}
+
+html {
+  background: var(--color-grey-97);
+  color: var(--color-grey-0);
+  letter-spacing: -0.3px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+:where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-grey-0);
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  left: 16px;
+  top: -48px;
+  z-index: 100;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--color-grey-0);
+  color: var(--color-grey-97);
+  font-weight: 700;
+}
+.skip-link:focus { top: 8px; }
+
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}
