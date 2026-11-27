@@ -38,3 +38,30 @@ export function verifyGroble(
   if (given.length !== expected.length || !timingSafeEqual(given, expected)) return "서명이 맞지 않아요";
   return null;
 }
+
+/** 웹훅 이벤트로 할 일을 정한다. DB를 건드리지 않는 판단만 해서 단위 테스트로 확인한다. */
+export type GroblePlan =
+  | { action: "enroll"; email: string; contentId: string }
+  | { action: "record"; result: string };
+
+export function planGroble(event: GrobleEvent): GroblePlan {
+  switch (event.type) {
+    case "payment.completed":
+      break;
+    // 취소 요청은 아직 결제가 살아 있어요. 신청은 그대로 두고 기록만 해요
+    case "payment.cancel_requested":
+      return { action: "record", result: "cancel_requested" };
+    default:
+      // 취소 완료·환불은 신청을 자동으로 지우지 않고 사람이 확인해요 (인증·점수 기록이 걸려 있어서)
+      return { action: "record", result: /cancel|refund/.test(event.type) ? "review:취소·환불 확인 필요" : "recorded" };
+  }
+  const obj = event.data?.object ?? {};
+  const email = obj.buyer?.email?.trim().toLowerCase();
+  const contentId = obj.content?.id;
+  if (!email || !contentId) return { action: "record", result: "failed:구매자 이메일이나 상품 id가 없어요" };
+  const amount = obj.pricing?.finalAmount;
+  if (obj.pricing?.currency !== "KRW" || !Number.isInteger(amount) || (amount as number) <= 0) {
+    return { action: "record", result: "review:금액·통화 확인 필요" };
+  }
+  return { action: "enroll", email, contentId };
+}

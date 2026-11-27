@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { grobleSignature, verifyGroble } from "./groble";
+import { grobleSignature, planGroble, verifyGroble, type GrobleEvent } from "./groble";
 
 const SECRET = "groble_whsec_test_only";
 const BODY = '{"id":"evt_1","type":"payment.completed"}';
@@ -29,5 +29,37 @@ describe("그로블 웹훅 서명", () => {
     expect(verifyGroble(SECRET, { signature: null, timestamp: TS }, BODY, Number(TS))).toBe("서명 헤더가 없어요");
     expect(verifyGroble(SECRET, { signature: sig, timestamp: "abc" }, BODY, Number(TS))).toBe("서명 헤더가 없어요");
     expect(verifyGroble(SECRET, { signature: "zz", timestamp: TS }, BODY, Number(TS))).toBe("서명이 맞지 않아요");
+  });
+});
+
+const paid = (over: Partial<GrobleEvent["data"]["object"]> = {}, type = "payment.completed"): GrobleEvent => ({
+  id: "evt_1",
+  type,
+  occurredAt: "2026-11-27T00:00:00Z",
+  data: { object: { buyer: { email: " Student@Demo.test " }, content: { id: "pU9r39" }, pricing: { finalAmount: 10000, currency: "KRW" }, ...over } },
+});
+
+describe("그로블 웹훅 처리 판단 (fixture)", () => {
+  it("정상 결제는 신청 (이메일은 소문자·공백 제거)", () => {
+    expect(planGroble(paid())).toEqual({ action: "enroll", email: "student@demo.test", contentId: "pU9r39" });
+  });
+
+  it("금액이 0·소수·없음이거나 통화가 KRW가 아니면 신청하지 않고 검토로 남김", () => {
+    const review = { action: "record", result: "review:금액·통화 확인 필요" };
+    expect(planGroble(paid({ pricing: { finalAmount: 0, currency: "KRW" } }))).toEqual(review);
+    expect(planGroble(paid({ pricing: { finalAmount: 99.5, currency: "KRW" } }))).toEqual(review);
+    expect(planGroble(paid({ pricing: { finalAmount: 10000, currency: "USD" } }))).toEqual(review);
+    expect(planGroble(paid({ pricing: undefined }))).toEqual(review);
+  });
+
+  it("구매자 이메일이나 상품 id가 없으면 실패로 기록", () => {
+    expect(planGroble(paid({ buyer: {} }))).toEqual({ action: "record", result: "failed:구매자 이메일이나 상품 id가 없어요" });
+  });
+
+  it("취소 요청은 신청 유지, 취소 완료·환불은 사람이 확인, 그 밖은 기록만", () => {
+    expect(planGroble(paid({}, "payment.cancel_requested"))).toEqual({ action: "record", result: "cancel_requested" });
+    expect(planGroble(paid({}, "payment.cancelled"))).toEqual({ action: "record", result: "review:취소·환불 확인 필요" });
+    expect(planGroble(paid({}, "payment.refunded"))).toEqual({ action: "record", result: "review:취소·환불 확인 필요" });
+    expect(planGroble(paid({}, "content.updated"))).toEqual({ action: "record", result: "recorded" });
   });
 });
