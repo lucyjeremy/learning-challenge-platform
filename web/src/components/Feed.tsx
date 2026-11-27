@@ -6,6 +6,7 @@ import type { Post } from "@/lib/data";
 import { createPostAction, deletePostAction, editPostAction, toggleLikeAction } from "@/server/actions";
 import { useConfirm } from "./ConfirmDialog";
 import { Avatar } from "./ui";
+import { safeAction } from "@/lib/safe-action";
 
 const FILTERS = ["전체", "인증", "질문", "공지"] as const;
 
@@ -292,7 +293,7 @@ function PostEditor({
     setError("");
     start(async () => {
       const input = { kind: v.kind, title: v.title.trim(), body: v.body.trim() };
-      const r = editing ? await editPostAction(editing.id, input) : await createPostAction(challengeId, input);
+      const r = editing ? await safeAction(editPostAction(editing.id, input)) : await safeAction(createPostAction(challengeId, input));
       if (!r.ok) {
         setError(r.message);
         return;

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
 import type { CheckinFormat } from "@/lib/data";
 import { submitProofAction } from "@/server/actions";
+import { safeAction } from "@/lib/safe-action";
 
 /** 지금 한국 시간 (시, 분, 초) */
 function kstNow() {
@@ -82,7 +83,7 @@ export function CheckinForm({ challengeId, day, format }: { challengeId: string;
     const value = text.trim();
     const payload = format === "링크" ? { linkUrl: value } : { body: value };
     start(async () => {
-      const r = await submitProofAction(challengeId, day, { ...payload, visibility: visibility === "공개" ? "public" : "private" });
+      const r = await safeAction(submitProofAction(challengeId, day, { ...payload, visibility: visibility === "공개" ? "public" : "private" }));
       if (!r.ok) {
         setError(r.message);
         return;

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import { passwordProblem } from "@/domain/validation";
 import { loginAction, signupAction } from "@/server/actions";
+import { safeAction } from "@/lib/safe-action";
 
 const field = "mt-1 h-11 w-full rounded-sm bg-grey-90 px-3 text-[14px] placeholder:text-grey-50 aria-[invalid=true]:outline aria-[invalid=true]:outline-1 aria-[invalid=true]:outline-accent-soft";
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -43,7 +44,7 @@ export function LoginForm() {
         if (emailBad || pwBad) return;
         setError("");
         start(async () => {
-          const r = await loginAction(email, pw);
+          const r = await safeAction(loginAction(email, pw));
           if (!r.ok) return setError(r.message);
           router.push(next);
           router.refresh();
@@ -124,7 +125,7 @@ export function SignupForm() {
         if (badCount > 0 || !terms || !privacy) return;
         setError("");
         start(async () => {
-          const r = await signupAction({ email: v.email, password: v.pw, passwordConfirm: v.pw, name: v.name, agreed: terms && privacy });
+          const r = await safeAction(signupAction({ email: v.email, password: v.pw, passwordConfirm: v.pw, name: v.name, agreed: terms && privacy }));
           if (!r.ok) return setError(r.message);
           router.push(next);
           router.refresh();
