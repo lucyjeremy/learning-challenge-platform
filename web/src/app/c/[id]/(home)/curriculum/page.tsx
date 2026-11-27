@@ -87,7 +87,7 @@ export default async function ClassroomPage({ params }: PageProps<"/c/[id]/curri
               s === "인정"
                 ? "bg-blue-50 text-grey-0"
                 : s === "강사 확인 중"
-                  ? "bg-grey-50 text-grey-0"
+                  ? "bg-grey-70 text-grey-0"
                   : s === "놓침"
                     ? "bg-grey-80 text-grey-50 line-through"
                     : n === today
@@ -118,7 +118,7 @@ export default async function ClassroomPage({ params }: PageProps<"/c/[id]/curri
         </ol>
         <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-grey-40">
           <Legend className="bg-blue-50" label="인증" />
-          <Legend className="bg-grey-50" label="확인 중" />
+          <Legend className="bg-grey-70" label="확인 중" />
           <Legend className="bg-grey-80" label="놓침" />
           <Legend className="bg-grey-97 ring-2 ring-blue-50" label="오늘" />
         </ul>
@@ -202,7 +202,7 @@ function Lesson({ id, n, title, date, today, status }: { id: string; n: number; 
 function StatusIcon({ locked, isToday, status }: { locked: boolean; isToday: boolean; status: Status }) {
   const base = "grid size-7 shrink-0 place-items-center rounded-full text-[13px] font-bold";
   if (status === "인정") return <span aria-hidden className={`${base} bg-blue-50`}>✓</span>;
-  if (status === "강사 확인 중") return <span aria-hidden className={`${base} bg-grey-50`}>…</span>;
+  if (status === "강사 확인 중") return <span aria-hidden className={`${base} bg-grey-70`}>…</span>;
   if (status === "놓침") return <span aria-hidden className={`${base} bg-grey-80 text-grey-40`}>–</span>;
   if (locked)
     return (

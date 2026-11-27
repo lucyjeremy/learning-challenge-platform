@@ -13,7 +13,7 @@ export async function Header() {
         <Link href="/" className="shrink-0 text-[20px] font-bold tracking-[-0.6px]">
           챌린지업
         </Link>
-        <form action="/" role="search" className="hidden h-[34px] w-[290px] items-center gap-1 rounded-pill bg-grey-10 py-[5px] pr-[9px] pl-[6px] sm:flex">
+        <form action="/" role="search" className="hidden h-[34px] w-[290px] items-center gap-1 rounded-pill bg-[#f2f2f2] py-[5px] pr-[9px] pl-[6px] sm:flex">
           <SearchIcon />
           <label htmlFor="q" className="sr-only">챌린지 검색</label>
           <input
@@ -22,7 +22,7 @@ export async function Header() {
             type="search"
             maxLength={50}
             placeholder="어떤 챌린지를 찾으시나요?"
-            className="min-w-0 flex-1 bg-transparent text-[12px] text-grey-80 placeholder:text-tag-text focus:outline-none"
+            className="min-w-0 flex-1 bg-transparent text-[12px] text-[#333333] placeholder:text-tag-text focus:outline-none"
           />
         </form>
         <nav aria-label="내 메뉴" className="ml-auto flex items-center gap-5 text-[14px]">
@@ -65,7 +65,7 @@ export async function Header() {
 
 function SearchIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="size-6 shrink-0 stroke-grey-80" fill="none" strokeWidth={1.8} aria-hidden>
+    <svg viewBox="0 0 24 24" className="size-6 shrink-0 stroke-[#333333]" fill="none" strokeWidth={1.8} aria-hidden>
       <circle cx="11" cy="11" r="6" />
       <path d="M16 16l4 4" strokeLinecap="round" />
     </svg>

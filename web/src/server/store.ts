@@ -261,9 +261,9 @@ export function todayCheckinsFor(challengeId: string, now = new Date()): { done:
   return { done, total: members.length };
 }
 
-export function streakOf(userId: string, challengeId: string): { current: number; longest: number } {
+export function streakOf(userId: string, challengeId: string, now = new Date()): { current: number; longest: number } {
   const e = activeEnrollment(userId, challengeId);
-  return e ? streakFor(e.id) : { current: 0, longest: 0 };
+  return e ? streakFor(e.id, now) : { current: 0, longest: 0 };
 }
 
 // ───────── 신청 ─────────
@@ -313,11 +313,11 @@ function dayRecords(enrollmentId: string, c: Challenge, now: Date): DayRecord[] 
 }
 
 /** 스트릭을 다시 계산하고, 연속 보상을 맞춘다 (맞으면 적립, 넘치면 회수). */
-function streakFor(enrollmentId: string): { current: number; longest: number } {
+function streakFor(enrollmentId: string, now = new Date()): { current: number; longest: number } {
   const e = state().enrollments.find((x) => x.id === enrollmentId);
   const c = e ? findChallenge(e.challengeId) : undefined;
   if (!e || !c) return { current: 0, longest: 0 };
-  return recalcStreak(e, c, new Date());
+  return recalcStreak(e, c, now);
 }
 
 function recalcStreak(e: Enrollment, c: Challenge, now: Date) {

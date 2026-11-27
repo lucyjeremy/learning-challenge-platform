@@ -118,8 +118,9 @@ describe("인증 (BP-SUB-002, BP-POINT-001, BP-POINT-005)", () => {
       last = submitProof("u-student", PY, d, { body: LONG_TEXT, visibility: "private" }, kst(`${day}T12:00:00`));
       expect(last.ok).toBe(true);
     }
-    expect(streakOf("u-student", PY).current).toBe(7);
-    expect(streakOf("u-student", PY).longest).toBe(7);
+    const at = kst("2026-11-25T12:00:00");
+    expect(streakOf("u-student", PY, at).current).toBe(7);
+    expect(streakOf("u-student", PY, at).longest).toBe(7);
   });
 
   it("텍스트 형식에서 10자 미만은 거절", () => {

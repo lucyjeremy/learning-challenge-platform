@@ -39,6 +39,7 @@
 }
 
 html {
+  color-scheme: dark;
   background: var(--color-grey-97);
   color: var(--color-grey-0);
   letter-spacing: -0.3px;
@@ -71,6 +72,30 @@ body {
 
 .no-scrollbar { scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* 라이트 모드: 시스템 설정이 밝은 테마면 회색 단계를 뒤집어요.
+   grey-0은 '가장 진한 글자', grey-97은 '바탕'이라는 뜻으로 쓰고 있어서 값만 바꾸면 돼요.
+   대비: 본문 보조(grey-40) 5.2:1, 강조(accent-soft) 5.3:1 이상 (WCAG AA) */
+@media (prefers-color-scheme: light) {
+  :root {
+    --color-grey-0: #111111;
+    --color-grey-10: #262626;
+    --color-grey-20: #333333;
+    --color-grey-30: #4a4a4a;
+    --color-grey-40: #5c5c5c;
+    --color-grey-50: #6e6e6e;
+    --color-grey-70: #c9c9c9;
+    --color-grey-80: #e6e6e6;
+    --color-grey-90: #f3f3f3;
+    --color-grey-97: #ffffff;
+    --color-grey-100: #ffffff;
+    --color-accent-soft: #b8102f;
+  }
+  html { color-scheme: light; }
+}
+
+/* 파랑·빨강 바탕 위 글자는 두 테마 모두 흰색 */
+.bg-blue-50, .bg-red-50 { color: #ffffff; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }

@@ -76,7 +76,8 @@ export function LoginForm() {
 }
 
 export function SignupForm() {
-  const [v, setV] = useState({ email: "", pw: "", pw2: "", name: "" });
+  const [v, setV] = useState({ email: "", pw: "", name: "" });
+  const [showPw, setShowPw] = useState(false);
   const [terms, setTerms] = useState(false);
   const [privacy, setPrivacy] = useState(false);
   const [tried, setTried] = useState(false);
@@ -88,18 +89,25 @@ export function SignupForm() {
   const errs = {
     email: !EMAIL.test(v.email) ? "이메일 주소를 확인해 주세요" : "",
     pw: passwordProblem(v.pw) ?? "",
-    pw2: v.pw2 !== v.pw || !v.pw2 ? "비밀번호가 서로 달라요" : "",
     name: v.name.trim().length < 2 || v.name.trim().length > 20 ? "이름은 2~20자로 적어 주세요" : "",
   };
   const badCount = Object.values(errs).filter(Boolean).length;
   const set = (k: keyof typeof v) => (e: React.ChangeEvent<HTMLInputElement>) => setV({ ...v, [k]: e.target.value });
 
-  const Field = ({ id, label, type, auto, help }: { id: keyof typeof v; label: string; type: string; auto: string; help?: string }) => {
+  const Field = ({ id, label, type, auto, help, toggle }: { id: keyof typeof v; label: string; type: string; auto: string; help?: string; toggle?: boolean }) => {
     const show = tried && errs[id];
     return (
       <div className="mt-4 first:mt-0">
         <label htmlFor={id} className="text-[13px] text-grey-30">{label}</label>
-        <input id={id} type={type} autoComplete={auto} value={v[id]} onChange={set(id)} aria-invalid={!!show} aria-describedby={`${id}-help`} className={field} />
+        <div className="relative">
+          <input id={id} type={type} autoComplete={auto} value={v[id]} onChange={set(id)} aria-invalid={!!show} aria-describedby={`${id}-help`} className={`${field} ${toggle ? "pr-16" : ""}`} />
+          {toggle && (
+            // 비밀번호 확인 칸 대신 '보기'로 직접 확인해요 (입력 칸 하나 줄이기)
+            <button type="button" onClick={() => setShowPw((x) => !x)} aria-pressed={showPw} aria-controls={id} className="absolute top-1 right-1 inline-flex h-11 min-w-11 items-center justify-center rounded-sm px-3 text-[13px] font-bold text-grey-30 hover:text-grey-0">
+              {showPw ? "숨기기" : "보기"}
+            </button>
+          )}
+        </div>
         {(show || help) && (
           <p id={`${id}-help`} className={`mt-1 text-[12px] ${show ? "text-accent-soft" : "text-grey-40"}`}>{show || help}</p>
         )}
@@ -116,7 +124,7 @@ export function SignupForm() {
         if (badCount > 0 || !terms || !privacy) return;
         setError("");
         start(async () => {
-          const r = await signupAction({ email: v.email, password: v.pw, passwordConfirm: v.pw2, name: v.name, agreed: terms && privacy });
+          const r = await signupAction({ email: v.email, password: v.pw, passwordConfirm: v.pw, name: v.name, agreed: terms && privacy });
           if (!r.ok) return setError(r.message);
           router.push(next);
           router.refresh();
@@ -124,8 +132,7 @@ export function SignupForm() {
       }}
     >
       {Field({ id: "email", label: "이메일", type: "email", auto: "email" })}
-      {Field({ id: "pw", label: "비밀번호", type: "password", auto: "new-password", help: "영문과 숫자를 함께 넣어 주세요 (8~72자)" })}
-      {Field({ id: "pw2", label: "비밀번호 확인", type: "password", auto: "new-password" })}
+      {Field({ id: "pw", label: "비밀번호", type: showPw ? "text" : "password", auto: "new-password", help: "영문과 숫자를 함께 넣어 주세요 (8~72자)", toggle: true })}
       {Field({ id: "name", label: "이름", type: "text", auto: "name", help: "피드와 순위표에 보이는 이름이에요" })}
 
       <div className="mt-6 space-y-2 text-[14px]">

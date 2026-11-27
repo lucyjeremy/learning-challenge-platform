@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import type { Post } from "@/lib/data";
 import { createPostAction, deletePostAction, editPostAction, toggleLikeAction } from "@/server/actions";
+import { useConfirm } from "./ConfirmDialog";
 import { Avatar } from "./ui";
 
 const FILTERS = ["전체", "인증", "질문", "공지"] as const;
@@ -94,6 +95,7 @@ function PostCard({ p, onEdit }: { p: Post; onEdit: () => void }) {
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
   const canManage = !!p.mine && (p.kind === "질문" || p.kind === "자유");
+  const [confirmDialog, ask] = useConfirm();
 
   function toggle() {
     setError("");
@@ -112,8 +114,8 @@ function PostCard({ p, onEdit }: { p: Post; onEdit: () => void }) {
     });
   }
 
-  function remove() {
-    if (!window.confirm("이 글을 삭제할까요? 삭제한 글은 되돌릴 수 없어요.")) return;
+  async function remove() {
+    if (!(await ask({ title: "이 글을 삭제할까요?", body: "삭제한 글은 되돌릴 수 없어요.", confirm: "삭제하기", danger: true }))) return;
     start(async () => {
       const r = await deletePostAction(p.id);
       if (r.ok) router.refresh();
@@ -176,6 +178,7 @@ function PostCard({ p, onEdit }: { p: Post; onEdit: () => void }) {
           {error}
         </p>
       )}
+      {confirmDialog}
     </article>
   );
 }
@@ -268,6 +271,7 @@ function PostEditor({
   const [v, setV] = useState(initial);
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
+  const [confirmDialog, ask] = useConfirm();
   const dirty = v.kind !== initial.kind || v.title !== initial.title || v.body !== initial.body;
   const canSubmit = v.title.trim().length > 0 && v.body.trim().length > 0 && !pending && (!editing || dirty);
 
@@ -278,8 +282,8 @@ function PostEditor({
     titleRef.current?.focus();
   }, []);
 
-  function close() {
-    if (dirty && !window.confirm("작성 중인 내용이 사라져요. 닫을까요?")) return;
+  async function close() {
+    if (dirty && !(await ask({ title: "작성 중인 내용이 사라져요", body: "닫으면 지금까지 쓴 내용은 저장되지 않아요.", confirm: "나가기", cancel: "계속 쓰기", danger: true }))) return;
     onDone(false);
   }
 
@@ -397,6 +401,7 @@ function PostEditor({
           </div>
         </footer>
       </form>
+      {confirmDialog}
     </dialog>
   );
 }
