@@ -368,6 +368,8 @@ export function submitProof(
   if (!isOpen(timing, dayNo, now)) return fail("아직 열리지 않은 Day예요");
   if (now.getTime() >= deadline(c.startDate, dayNo).getTime()) return fail("아쉽지만 인증 마감(23:59)이 지났어요");
   if (mySubmission(userId, challengeId, dayNo)) return fail("이 Day는 이미 인증했어요. 내용을 고칠까요?");
+  // 사진 업로드가 아직 없어서, 사진 경로 문자열만으로는 인증을 받지 않아요
+  if (c.format === "사진") return fail("사진 인증은 아직 준비 중이에요");
 
   const problems = validateProof(PROOF_TYPE[c.format], payload);
   if (problems.length > 0) return fail(problems[0].message);
@@ -382,7 +384,7 @@ export function submitProof(
     userId,
     dayNo,
     body: payload.body?.trim() ?? "",
-    linkUrl: payload.linkUrl,
+    linkUrl: c.format === "링크" ? payload.linkUrl : undefined,
     visibility: payload.visibility,
     status,
     firstSubmittedAt: now.toISOString(),
@@ -449,6 +451,7 @@ export function createPost(
   const user = getUser(userId);
   if (!c || !user) return fail("로그인하면 글을 쓸 수 있어요");
   if (stateOf(c, now) === "ended") return fail("끝난 챌린지예요. 지난 글은 계속 볼 수 있어요");
+  if (kind !== "공지" && kind !== "질문" && kind !== "자유") return fail("게시판을 다시 골라 주세요");
   const isInstructor = user.role === "instructor" && c.instructor.name === user.name;
   if (kind === "공지" && !isInstructor) return fail("공지는 강사만 올릴 수 있어요");
   if (kind !== "공지" && !isMemberOf(userId, challengeId) && !isInstructor) return fail("신청한 참여자만 글을 쓸 수 있어요");
@@ -483,6 +486,7 @@ export function editPost(
   if (post.kind === "인증") return fail("인증 글은 Day 화면에서 고칠 수 있어요");
   const c = findChallenge(post.challengeId);
   if (c && stateOf(c, now) === "ended") return fail("끝난 챌린지의 글은 고칠 수 없어요");
+  if (input.kind !== "질문" && input.kind !== "자유") return fail("게시판을 다시 골라 주세요");
   const problem = checkPostText(input.title, input.body);
   if (problem) return fail(problem);
   if (post.kind !== "공지") post.kind = input.kind;

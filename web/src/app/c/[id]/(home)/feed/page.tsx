@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { Feed } from "@/components/Feed";
 import { posts as seedPosts, type Post } from "@/lib/data";
 import { currentUserId } from "@/server/actions";
-import { getUser, postsOf } from "@/server/store";
+import { getUser, isInstructorOf, isMemberOf, postsOf } from "@/server/store";
 
 export const metadata: Metadata = { title: "피드" };
 
@@ -17,6 +18,8 @@ const timeFmt = new Intl.DateTimeFormat("ko-KR", {
 export default async function FeedPage({ params }: PageProps<"/c/[id]/feed">) {
   const { id } = await params;
   const viewer = await currentUserId();
+  // 레이아웃 검사만으로는 이 페이지 데이터가 응답에 실리는 걸 막지 못해서, 읽기 전에 다시 확인해요
+  if (!isMemberOf(viewer, id) && !isInstructorOf(viewer, id)) redirect(`/c/${id}`);
   // 사용자가 남긴 글은 저장소에서, 예시 글은 시드(python-21)에서 가져와요
   const stored: Post[] = postsOf(id)
     .slice()

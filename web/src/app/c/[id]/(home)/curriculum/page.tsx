@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getChallenge } from "@/lib/data";
 import { addDays, currentDay, fmtDate, requiredCheckins } from "@/lib/format";
 import { currentUserId } from "@/server/actions";
-import { dayStatusesFor, isInstructorOf } from "@/server/store";
+import { dayStatusesFor, isInstructorOf, isMemberOf } from "@/server/store";
 
 export const metadata: Metadata = { title: "내 강의실" };
 
@@ -20,6 +20,8 @@ export default async function ClassroomPage({ params }: PageProps<"/c/[id]/curri
   if (!c) notFound();
   const today = currentDay(c);
   const uid = await currentUserId();
+  // 레이아웃 검사만으로는 이 페이지 데이터가 응답에 실리는 걸 막지 못해서, 읽기 전에 다시 확인해요
+  if (!isMemberOf(uid, id) && !isInstructorOf(uid, id)) redirect(`/c/${id}`);
   const statuses = dayStatusesFor(uid, id);
   // 강사는 강의 목록의 모든 Day를 열어 볼 수 있어요
   const listToday = isInstructorOf(uid, id) ? c.days : today;

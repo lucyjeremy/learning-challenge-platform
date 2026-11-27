@@ -220,3 +220,36 @@ describe("리더보드·오늘 인증 수 (BP-POINT-004, TC-FN-LB)", () => {
     expect(isInstructorOf("u-student", PY)).toBe(false);
   });
 });
+
+describe("보안 회귀 (SEC-01~03)", () => {
+  it("SEC-01 글 종류는 공지(강사)·질문·자유만 만들 수 있다", () => {
+    const fake = createPost("u-student", PY, "인증" as "질문", "가짜 인증 글입니다", NOW);
+    expect(fake.ok).toBe(false);
+    expect(postsOf(PY).some((p) => p.kind === "인증" && p.body === "가짜 인증 글입니다")).toBe(false);
+  });
+
+  it("SEC-01 글을 고칠 때 공지·인증으로 바꿀 수 없다", () => {
+    const created = createPost("u-student", PY, "자유", "평범한 글", NOW);
+    const id = created.ok ? created.value : "";
+    expect(editPost("u-student", id, { kind: "공지" as "자유", body: "가짜 공지" }, NOW).ok).toBe(false);
+    expect(editPost("u-student", id, { kind: "인증" as "자유", body: "가짜 인증" }, NOW).ok).toBe(false);
+    expect(postsOf(PY).find((p) => p.id === id)!.kind).toBe("자유");
+  });
+
+  it("SEC-02 사진 형식은 업로드가 준비될 때까지 photoPaths만으로 인증되지 않는다", () => {
+    expect(enroll("u-student", "run-28", kst("2026-11-05T09:00:00")).ok).toBe(true);
+    const before = pointsOf("u-student", "run-28");
+    const r = submitProof("u-student", "run-28", 10, { photoPaths: ["x"], photoSizesBytes: [1], visibility: "private" }, kst("2026-11-20T10:00:00"));
+    expect(r.ok).toBe(false);
+    expect(pointsOf("u-student", "run-28")).toBe(before);
+    expect(mySubmission("u-student", "run-28", 10)).toBeUndefined();
+  });
+
+  it("SEC-03 링크 형식이 아니면 linkUrl을 저장하지도 글 본문에 쓰지도 않는다", () => {
+    const r = submitProof("u-student", PY, 7, { body: LONG_TEXT, linkUrl: "javascript:alert(1)", visibility: "public" }, NOW);
+    expect(r.ok).toBe(true);
+    expect(mySubmission("u-student", PY, 7)?.linkUrl).toBeUndefined();
+    const post = postsOf(PY).find((p) => p.id === (r.ok ? r.value.postId : ""));
+    expect(post?.body).toBe(LONG_TEXT);
+  });
+});
