@@ -6,7 +6,7 @@ import type { Post } from "@/lib/data";
 import { createPostAction, deletePostAction, editPostAction, toggleLikeAction } from "@/server/actions";
 import { useConfirm } from "./ConfirmDialog";
 import { Avatar } from "./ui";
-import { safeAction } from "@/lib/safe-action";
+import { safeAction, TAP_FAIL } from "@/lib/safe-action";
 
 const FILTERS = ["전체", "인증", "질문", "공지"] as const;
 
@@ -107,7 +107,7 @@ function PostCard({ p, onEdit }: { p: Post; onEdit: () => void }) {
       return;
     }
     start(async () => {
-      const r = await toggleLikeAction(p.id);
+      const r = await safeAction(toggleLikeAction(p.id), TAP_FAIL);
       if (r.ok) {
         setLiked(r.value.liked);
         setLikes(r.value.count);
@@ -118,7 +118,7 @@ function PostCard({ p, onEdit }: { p: Post; onEdit: () => void }) {
   async function remove() {
     if (!(await ask({ title: "이 글을 삭제할까요?", body: "삭제한 글은 되돌릴 수 없어요.", confirm: "삭제하기", danger: true }))) return;
     start(async () => {
-      const r = await deletePostAction(p.id);
+      const r = await safeAction(deletePostAction(p.id), TAP_FAIL);
       if (r.ok) router.refresh();
       else setError(r.message);
     });

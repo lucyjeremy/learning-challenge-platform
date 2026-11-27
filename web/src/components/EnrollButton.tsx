@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { enrollAction } from "@/server/actions";
+import { safeAction, TAP_FAIL } from "@/lib/safe-action";
 
 /** 신청 버튼. 서버에 신청을 저장하고, 성공하면 화면을 새로 불러와요. */
 export function EnrollButton({ id, startDate, className = "" }: { id: string; startDate: string; className?: string }) {
@@ -13,7 +14,7 @@ export function EnrollButton({ id, startDate, className = "" }: { id: string; st
   function enroll() {
     setError("");
     start(async () => {
-      const r = await enrollAction(id);
+      const r = await safeAction(enrollAction(id), TAP_FAIL);
       if (r.ok) router.refresh();
       else setError(r.message);
     });

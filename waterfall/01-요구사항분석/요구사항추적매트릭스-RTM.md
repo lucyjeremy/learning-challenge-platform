@@ -2,7 +2,7 @@
 
 > Requirements Traceability Matrix
 >
-> 현재 단계: 요구사항 분석(Phase 1) 초안 + 상세 설계(Phase 3) 초안. 설계 열은 [상세 설계서](../03-상세설계/상세설계서.md) DDS-CHUP-v0.1의 절 번호를 적었다. 02-시스템설계 문서는 아직 작성 전이라 연결하지 않았다. 구현·테스트는 시작 전이므로 "미착수"로 둔다. v0.2에서 [테스트 케이스 문서](../05-테스트/테스트케이스.md)(TCS-CHUP-v0.1)의 TC ID를 연결했다. TC는 정의만 되어 있고 실행하지 않았으므로 판정은 모두 "미실행"이다.
+> 현재 상태 (2026-11-27, `main` `f85c7de`): 학생 흐름이 운영 https://learning-challenge-platform-virid.vercel.app 에 배포되어 있다. v0.3에서 구현 열에 `web/src` 모듈과 커밋을, 판정 열에 [전체 테스트 실행 결과](../05-테스트/전체-테스트-실행-결과.md)(2026-11-26, 결함 수정 후 재검증)의 TC별 판정 수를 적었다. 구현이 없는 요구사항은 "미구현", 실행하지 않은 TC는 "미실행"이다. 설계 열은 [상세 설계서](../03-상세설계/상세설계서.md)의 절 번호다.
 
 ---
 
@@ -11,8 +11,8 @@
 | 항목 | 내용 |
 |------|------|
 | 프로젝트명 | 챌린지업 (ChallengeUp) — 온라인 강의 챌린지 플랫폼 |
-| 문서 번호 | RTM-CHUP-v0.2 |
-| 버전 | 0.2 |
+| 문서 번호 | RTM-CHUP-v0.3 |
+| 버전 | 0.3 |
 | 작성일 | 2026-11-24 |
 | 작성자 | Claude Code (초안) |
 | SRS 기준선·대상 릴리스 | SRS-CHUP-v0.1 (초안, 미승인) / v1.0 MVP |
@@ -25,6 +25,7 @@
 |------|------|-----------|--------|
 | 0.1 | 2026-11-24 | SRS v0.1, UCS v0.1, DDS v0.1 기준 초기 행 작성 | Claude Code |
 | 0.2 | 2026-11-25 | TCS-CHUP-v0.1 TC ID를 FR-001~023, NFR 13개 행에 연결, 6장 테스트 매핑률 갱신 (판정은 모두 미실행) | Claude Code |
+| 0.3 | 2026-11-27 | 구현 모듈·커밋, TC 실행 판정(166개 실행 결과), 커버리지·미매핑 표를 현재 상태로 갱신 | Claude Code |
 
 ---
 
@@ -77,56 +78,58 @@
 
 ## 4. 기능 요구사항 추적 매트릭스
 
-| FR-ID·요구사항명 | 기획·정책 출처 | 우선순위·상태 | UC·수용 기준 | 설계·구현 위치 | 테스트 케이스 | 판정·증빙 |
+판정 열: 연결된 TC의 판정 수 (통과·조건부·부분·미실행). 실패는 모든 행에서 0건이다. 구현 경로는 `web/src` 기준이다.
+
+| FR-ID·요구사항명 | 기획·정책 출처 | 우선순위·구현 상태 | UC·수용 기준 | 설계 / 구현 모듈 · 커밋 | 테스트 케이스 | 판정·증빙 |
 | --- | --- | --- | --- | --- | --- | --- |
-| FR-001 회원가입 | MVP-001 / BP-AUTH-001-1~4, -6 | P1 / 초안 | UC-001 / FR-001-AC1~AC4 | DDS 5.1 AuthModule / 구현 미착수 | TC-FN-AUTH-001~005, TC-SEC-PRIV-001 | 미실행 |
-| FR-002 로그인/로그아웃 | MVP-001, MVP-015 / BP-AUTH-001-5, BP-AUTH-002-1~5 | P1 (구글 P2) / 초안 | UC-002 / FR-002-AC1~AC4 | DDS 3.1, 5.1 / 미착수 | TC-FN-AUTH-006~010 | 미실행 |
-| FR-003 프로필 관리 | MVP-001 / BP-AUTH-001-4 | P1 / 초안 | UC-003 / FR-003-AC1~AC3 | DDS 5.1 ProfileService / 미착수 | TC-FN-AUTH-011~012, TC-SEC-RLS-005 | 미실행 |
-| FR-004 역할·권한 제어 | BP-AUTH-003, BP-CONTENT-001-1~3, BP-FEED-001-1 | P1 / 초안 | 전체 UC / FR-004-AC1~AC4 | DDS 2.1, 5.11 RLS 정책표 / 미착수 | TC-SEC-RLS-001~004, TC-SEC-RLS-010~015 | 미실행 |
-| FR-005 강사 신청·승인 | MVP-002 / BP-AUTH-004-1~4 | P1 / 초안 | UC-004 / FR-005-AC1~AC4 | DDS 4.4, 5.2 InstructorModule / 미착수 | TC-FN-INS-001~004 | 미실행 |
-| FR-006 챌린지 등록 | MVP-003 / BP-CHAL-002, BP-CHAL-001-3, BP-CONTENT-002-1, BP-PAY-001-1, BP-ERROR-002-4 | P1 / 초안 | UC-005 / FR-006-AC1~AC5 | DDS 4.1, 5.3 ChallengeModule / 미착수 | TC-FN-CHAL-001~006 | 미실행 |
-| FR-007 챌린지 검수 | MVP-004 / BP-CHAL-003-1~3, BP-CHAL-004-3 | P1 / 초안 | UC-006 / FR-007-AC1~AC4 | DDS 4.1, 5.3 / 미착수 | TC-FN-CHAL-007~009, TC-SEC-RLS-006 | 미실행 |
-| FR-008 챌린지 상태 자동 전환 | BP-CHAL-001-1·2, BP-CHAL-003-4, BP-RESET-002 | P1 / 초안 | UC-016 / FR-008-AC1~AC5 | DDS 3.4, 4.1, 5.10 SchedulerModule / 미착수 | TC-FN-JOB-001~005 | 미실행 |
-| FR-009 챌린지 수정·취소 | BP-CHAL-004 표, BP-CHAL-004-1·2, BP-CHAL-005-1·2 | P1 / 초안 | UC-007 / FR-009-AC1~AC4 | DDS 4.1, 5.3 / 미착수 | TC-FN-CHAL-010~014 | 미실행 |
-| FR-010 챌린지 탐색 | MVP-005, MVP-016 / BP-STAT-001, BP-STAT-002-1·3 | P1 (정렬·검색 P2) / 초안 | UC-008 / FR-010-AC1~AC4 | DDS 5.3 / 미착수 | TC-FN-DISC-001~004 | 미실행 |
-| FR-011 챌린지 소개 페이지 | MVP-006 / BP-CONTENT-001, BP-CONTENT-002-4, BP-STAT-002-3 | P1 / 초안 | UC-008 / FR-011-AC1~AC4 | DDS 5.3 / 미착수 | TC-FN-DISC-005~007, TC-SEC-XSS-001 | 미실행 |
-| FR-012 챌린지 신청·취소 | MVP-007, MVP-017 / BP-ENR-001-1~6, BP-ENR-002-1~4, BP-ERROR-003-1 | P1 (취소 P2) / 초안 | UC-009 / FR-012-AC1~AC6 | DDS 3.2, 4.2, 5.4 EnrollmentModule / 미착수 | TC-FN-ENR-001~008 | 미실행 |
-| FR-013 커리큘럼·Day 열람 | MVP-008 / BP-CONTENT-002-1~6 | P1 / 초안 | UC-010 / FR-013-AC1~AC4 | DDS 5.5 CurriculumModule / 미착수 | TC-FN-CUR-001~004, TC-SEC-RLS-007 | 미실행 |
-| FR-014 오늘의 미션 | MVP-008 / BP-NOTI-001, BP-RESET-001-1 | P1 / 초안 | UC-010 / FR-014-AC1~AC2 | DDS 5.5 / 미착수 | TC-FN-CUR-005~006 | 미실행 |
-| FR-015 미션 인증 | MVP-009, MVP-018 / BP-SUB-001~004, BP-ERROR-002-1~3, BP-ERROR-003-1·2 | P1 (수정·삭제 P2) / 초안 | UC-011 / FR-015-AC1~AC8 | DDS 3.3, 4.3, 5.6 SubmissionModule / 미착수 | TC-FN-SUB-001~014 | 미실행 |
-| FR-016 강사 인증 확인 | MVP-018 / BP-SUB-004-2~5, BP-POINT-005-4 | P2 / 초안 | UC-012 / FR-016-AC1~AC4 | DDS 4.3, 5.6 / 미착수 | TC-FN-REV-001~003, TC-SEC-RLS-008 | 미실행 |
-| FR-017 인증 피드 | MVP-010, MVP-019 / BP-FEED-001-1~5, BP-FEED-002-1~3, BP-SUB-002-4 | P1 (필터 P3) / 초안 | UC-013 / FR-017-AC1~AC5 | DDS 5.7 FeedModule / 미착수 | TC-FN-FEED-001~006, TC-SEC-RLS-015, TC-SEC-XSS-002 | 미실행 |
-| FR-018 포인트·레벨 | MVP-011 / BP-POINT-001~003 | P1 / 초안 | UC-011, UC-013 / FR-018-AC1~AC5 | DDS 5.8 PointModule, 6.2 / 미착수 | TC-FN-PT-001~008, TC-FN-SUB-009~010 | 미실행 |
-| FR-019 리더보드·스트릭 | MVP-011 / BP-POINT-004-1~5, BP-POINT-005-1~5, BP-RESET-001-3 | P1 / 초안 | UC-014, UC-016 / FR-019-AC1~AC5 | DDS 5.8, 3.4 / 미착수 | TC-FN-STRK-001~006, TC-FN-LB-001~003 | 미실행 |
-| FR-020 완주 자동 판정 | MVP-012, MVP-020 / BP-DONE-001-1~6, BP-DONE-002-1~4, BP-SUB-004-4 | P1 (배지 P3) / 초안 | UC-016 / FR-020-AC1~AC6 | DDS 3.5, 4.2, 5.10 / 미착수 | TC-FN-DONE-001~009 | 미실행 |
-| FR-021 강사 운영 대시보드 | MVP-013 / BP-STAT-001, BP-STAT-002-2·4, BP-DONE-002-3 | P1 / 초안 | UC-015 / FR-021-AC1~AC4 | DDS 5.9 DashboardModule / 미착수 | TC-FN-DASH-001~003, TC-SEC-RLS-009 | 미실행 |
-| FR-022 마이페이지 | MVP-014, MVP-020 / BP-DONE-002-2, BP-POINT-005-5 | P2 (배지 P3) / 초안 | UC-003 / FR-022-AC1~AC2 | DDS 5.1, 5.8 / 미착수 | TC-FN-MY-001~002 | 미실행 |
-| FR-023 신고 처리 | MVP-019 / BP-FEED-003-1~4, BP-POINT-003 | P3 / 초안 | UC-017 / FR-023-AC1~AC4 | DDS 5.7 / 미착수 | TC-FN-RPT-001~004 | 미실행 |
-| FR-024 유료 결제·매출 배분 | EX-001, EX-013 / BP-PAY-002~006 (직접 운영형 20%, 기획 지원형 50%) | P4 / 보류 | - | N/A | N/A | N/A — v2 |
+| FR-001 회원가입 | MVP-001 / BP-AUTH-001-1~4, -6 | P1 / 일부 구현 (메일 인증 안내 없음) | UC-001 / FR-001-AC1~AC4 | DDS 5.1 / `server/actions.ts` signupAction, `components/AuthForm.tsx`, `domain/validation.ts` · `748224c`, `76e86f3`, `7da9354` | TC-FN-AUTH-001~005, TC-SEC-PRIV-001 | 통과 3, 조건부 1, 부분 2 |
+| FR-002 로그인/로그아웃 | MVP-001, MVP-015 / BP-AUTH-001-5, BP-AUTH-002-1~5 | P1 (구글 P2) / 일부 구현 (재설정·구글 없음) | UC-002 / FR-002-AC1~AC4 | DDS 3.1, 5.1 / `server/actions.ts` loginAction·logoutAction, `server/session.ts` (Supabase Auth) · `748224c` | TC-FN-AUTH-006~010 | 통과 3, 미실행 2 |
+| FR-003 프로필 관리 | MVP-001 / BP-AUTH-001-4 | P1 / 미구현 | UC-003 / FR-003-AC1~AC3 | DDS 5.1 / - | TC-FN-AUTH-011~012, TC-SEC-RLS-005 | 미실행 3 |
+| FR-004 역할·권한 제어 | BP-AUTH-003, BP-CONTENT-001-1~3, BP-FEED-001-1 | P1 / 일부 구현 | 전체 UC / FR-004-AC1~AC4 | DDS 2.1, 5.11 / `supabase/migrations/0002_app_adjust.sql`(RLS), `server/db.ts`(service_role로만 접근) · `748224c` | TC-SEC-RLS-001~004, TC-SEC-RLS-010~015 | 통과 4, 부분 2, 미실행 4 |
+| FR-005 강사 신청·승인 | MVP-002 / BP-AUTH-004-1~4 | P1 / 미구현 | UC-004 / FR-005-AC1~AC4 | DDS 4.4, 5.2 / - | TC-FN-INS-001~004 | 미실행 4 |
+| FR-006 챌린지 등록 | MVP-003 / BP-CHAL-002, BP-CHAL-001-3, BP-CONTENT-002-1, BP-PAY-001-1, BP-ERROR-002-4 | P1 / 미구현 (시드 `web/scripts/seed.ts`로 등록) | UC-005 / FR-006-AC1~AC5 | DDS 4.1, 5.3 / - | TC-FN-CHAL-001~006 | 미실행 6 |
+| FR-007 챌린지 검수 | MVP-004 / BP-CHAL-003-1~3, BP-CHAL-004-3 | P1 / 미구현 | UC-006 / FR-007-AC1~AC4 | DDS 4.1, 5.3 / - | TC-FN-CHAL-007~009, TC-SEC-RLS-006 | 미실행 4 |
+| FR-008 챌린지 상태 자동 전환 | BP-CHAL-001-1·2, BP-CHAL-003-4, BP-RESET-002 | P1 / 미구현 (화면은 날짜로 상태 계산) | UC-016 / FR-008-AC1~AC5 | DDS 3.4, 4.1, 5.10 / - | TC-FN-JOB-001~005 | 미실행 5 |
+| FR-009 챌린지 수정·취소 | BP-CHAL-004 표, BP-CHAL-004-1·2, BP-CHAL-005-1·2 | P1 / 미구현 | UC-007 / FR-009-AC1~AC4 | DDS 4.1, 5.3 / - | TC-FN-CHAL-010~014 | 미실행 5 |
+| FR-010 챌린지 탐색 | MVP-005, MVP-016 / BP-STAT-001, BP-STAT-002-1·3 | P1 (정렬·검색 P2) / 구현 | UC-008 / FR-010-AC1~AC4 | DDS 5.3 / `app/page.tsx`, `components/ExploreList.tsx`, `ChallengeCard.tsx` · `c293853`, `c46a189` | TC-FN-DISC-001~004 | 통과 4 |
+| FR-011 챌린지 소개 페이지 | MVP-006 / BP-CONTENT-001, BP-CONTENT-002-4, BP-STAT-002-3 | P1 / 구현 (소개글 편집 없음) | UC-008 / FR-011-AC1~AC4 | DDS 5.3 / `app/c/[id]/page.tsx` · `c293853`, `c46a189` | TC-FN-DISC-005~007, TC-SEC-XSS-001 | 통과 2, 부분 1, 미실행 1 |
+| FR-012 챌린지 신청·취소 | MVP-007, MVP-017 / BP-ENR-001-1~6, BP-ENR-002-1~4, BP-ERROR-003-1 | P1 (취소 P2) / 구현 (취소 화면 없음) | UC-009 / FR-012-AC1~AC6 | DDS 3.2, 4.2, 5.4 / `server/store.ts` enroll·cancelEnrollment, `components/EnrollButton.tsx`, `supabase/migrations/0004_enroll_capacity.sql` · `c46a189`, `18acf30` | TC-FN-ENR-001~008 | 통과 6, 부분 1, 미실행 1 |
+| FR-013 커리큘럼·Day 열람 | MVP-008 / BP-CONTENT-002-1~6 | P1 / 구현 | UC-010 / FR-013-AC1~AC4 | DDS 5.5 / `domain/day-calendar.ts`, `app/c/[id]/(home)/curriculum`, `day/[n]` · `c293853`, `748224c`, `c46a189` | TC-FN-CUR-001~004, TC-SEC-RLS-007 | 통과 1, 부분 2, 미실행 2 |
+| FR-014 오늘의 미션 | MVP-008 / BP-NOTI-001, BP-RESET-001-1 | P1 / 구현 | UC-010 / FR-014-AC1~AC2 | DDS 5.5 / `components/TodayMission.tsx`, `app/page.tsx` · `c46a189` | TC-FN-CUR-005~006 | 통과 2 |
+| FR-015 미션 인증 | MVP-009, MVP-018 / BP-SUB-001~004, BP-ERROR-002-1~3, BP-ERROR-003-1·2 | P1 (수정·삭제 P2) / 일부 구현 (사진·수정·삭제 없음) | UC-011 / FR-015-AC1~AC8 | DDS 3.3, 4.3, 5.6 / `components/CheckinForm.tsx`, `server/store.ts` submitProof, `lib/safe-action.ts` · `c293853`, `c46a189`, `4e55d62` | TC-FN-SUB-001~014 | 통과 9, 부분 1, 미실행 4 |
+| FR-016 강사 인증 확인 | MVP-018 / BP-SUB-004-2~5, BP-POINT-005-4 | P2 / 미구현 | UC-012 / FR-016-AC1~AC4 | DDS 4.3, 5.6 / - | TC-FN-REV-001~003, TC-SEC-RLS-008 | 미실행 4 |
+| FR-017 인증 피드 | MVP-010, MVP-019 / BP-FEED-001-1~5, BP-FEED-002-1~3, BP-SUB-002-4 | P1 (필터 P3) / 일부 구현 (공지·숨김·댓글 화면 없음) | UC-013 / FR-017-AC1~AC5 | DDS 5.7 / `components/Feed.tsx`, `ConfirmDialog.tsx`, `server/store.ts` createPost·editPost·deletePost·toggleLike · `c293853`, `7da9354`, `d97ef43` | TC-FN-FEED-001~006, TC-SEC-RLS-015, TC-SEC-XSS-002 | 통과 5, 미실행 3 (별도로 AC-01·FEED-02 통과) |
+| FR-018 포인트·레벨 | MVP-011 / BP-POINT-001~003 | P1 / 일부 구현 (댓글·회수 경로 없음) | UC-011, UC-013 / FR-018-AC1~AC5 | DDS 5.8, 6.2 / `domain/points.ts`, `server/store.ts` 원장 · `c293853` | TC-FN-PT-001~008, TC-FN-SUB-009~010 | 통과 5, 부분 1, 미실행 4 |
+| FR-019 리더보드·스트릭 | MVP-011 / BP-POINT-004-1~5, BP-POINT-005-1~5, BP-RESET-001-3 | P1 / 구현 (스트릭은 화면 계산, 정기 작업 없음) | UC-014, UC-016 / FR-019-AC1~AC5 | DDS 5.8, 3.4 / `domain/streak.ts`, `components/Leaderboard.tsx`, `server/store.ts` leaderboardFor · `c46a189` | TC-FN-STRK-001~006, TC-FN-LB-001~003 | 통과 4, 부분 3, 미실행 2 |
+| FR-020 완주 자동 판정 | MVP-012, MVP-020 / BP-DONE-001-1~6, BP-DONE-002-1~4, BP-SUB-004-4 | P1 (배지 P3) / 미구현 (필요 인증 수 계산 함수만) | UC-016 / FR-020-AC1~AC6 | DDS 3.5, 4.2, 5.10 / `domain/day-calendar.ts` requiredCount | TC-FN-DONE-001~009 | 통과 1, 미실행 8 |
+| FR-021 강사 운영 대시보드 | MVP-013 / BP-STAT-001, BP-STAT-002-2·4, BP-DONE-002-3 | P1 / 미구현 | UC-015 / FR-021-AC1~AC4 | DDS 5.9 / - | TC-FN-DASH-001~003, TC-SEC-RLS-009 | 미실행 4 |
+| FR-022 마이페이지 | MVP-014, MVP-020 / BP-DONE-002-2, BP-POINT-005-5 | P2 (배지 P3) / 미구현 | UC-003 / FR-022-AC1~AC2 | DDS 5.1, 5.8 / - | TC-FN-MY-001~002 | 미실행 2 |
+| FR-023 신고 처리 | MVP-019 / BP-FEED-003-1~4, BP-POINT-003 | P3 / 미구현 | UC-017 / FR-023-AC1~AC4 | DDS 5.7 / - | TC-FN-RPT-001~004 | 미실행 4 |
+| FR-024 유료 결제·매출 배분 | EX-001, EX-013 / BP-PAY-002~006 (직접 운영형 20%, 기획 지원형 50%) | P4 / 보류 | - | 그로블 결제 웹훅 수신만 구현: `app/api/webhooks/groble/route.ts`, `server/groble.ts`, `0003_groble_webhook.sql` · `8310050` (상품↔챌린지 연결 없음) | TC 없음 | N/A — v2. 웹훅 W1~W9는 로컬·운영 모두 통과 (별도 점검) |
 | FR-025 외부 알림 발송 | EX-004 / BP-NOTI-001 (v2 항목), BP-NOTI-002 | P4 / 보류 | - | N/A | N/A | N/A — v2 |
 
 ---
 
 ## 5. 비기능 요구사항 추적 매트릭스
 
-| NFR-ID·요구사항명 | 출처 | 우선순위·상태 | 검증 조건과 기준 | 설계·구현 위치 | 테스트 케이스 | 판정·증빙 |
+| NFR-ID·요구사항명 | 출처 | 우선순위·구현 상태 | 검증 조건과 기준 | 설계 / 구현 위치 · 커밋 | 테스트 케이스 | 판정·증빙 |
 | --- | --- | --- | --- | --- | --- | --- |
-| NFR-001 페이지 응답 | PRD 비기능, 서비스 기획서 5.5 | P1 / 초안 | 주요 화면 LCP p75 ≤ 3초, 서버 액션 p95 ≤ 800ms | DDS 7.2 (서버 컴포넌트 조회), 7.5 / 미착수 | TC-PF-PAGE-001~002, TC-PF-ACT-001, TC-PF-UPL-001 | 미실행 |
-| NFR-002 동시 사용자 | SRS 2.5 가정 2 | P2 / 초안 | 동시 200명(마감 직전)에서 NFR-001 유지 | DDS 3.2, 3.3 (행 잠금 범위) / 미착수 | TC-PF-CON-001 | 미실행 |
-| NFR-003 정기 작업 처리 시간 | BP-DONE-001-3 | P1 / 초안 | 00:00 작업 5분, 판정 10분 (종료 챌린지 20개·신청 6,000건) | DDS 5.10 / 미착수 | TC-PF-JOB-001~002 | 미실행 |
-| NFR-004 인증·인가 | BP-AUTH-003, BP-CONTENT-001-3 | P1 / 초안 | 전 테이블 RLS, 접근 표 각 칸 1건 이상 통과 | DDS 5.11 RLS 정책표 / 미착수 | TC-SEC-RLS-001~015, TC-SEC-KEY-001~002, TC-SEC-AUTH-001 | 미실행 |
-| NFR-005 데이터 보호 | SRS 4.3 | P1 / 초안 | 비공개 인증 사진은 서명 URL로만, 소개글 XSS 미실행 | DDS 5.6 (StorageService), 7.4 / 미착수 | TC-SEC-RLS-014, TC-SEC-XSS-001~002 | 미실행 |
-| NFR-006 관리자 작업 로그 | SRS 4.3 | P1 / 초안 | 검수·강사 승인·신고·정기 작업·판정 정정 전수 기록, update·delete 불가 | DDS 5.10 admin_logs / 미착수 | TC-SEC-RLS-012, TC-SEC-LOG-001 | 미실행 |
-| NFR-007 서비스 가용성 | SRS 4.4 | P2 / 초안 | 월 99.5% (사업자 기본) | N/A — 사업자 관리 | N/A | 운영 측정 |
-| NFR-008 백업·복구 | SRS 4.4, 6.4 | P2 / 초안 | 일 1회 백업, 출시 전 복원 1회 성공 | 미결 — 요금제 결정 후 (ISSUE-04) | TC-OP-BAK-001 | 미실행 |
-| NFR-009 증가 대응 | SRS 4.5 | P3 / 초안 | 가입자 1만 명 시드에서 NFR-001 유지 | DDS 5.8 (인덱스), 2.1 / 미착수 | TC-PF-SCL-001 | 미실행 |
-| NFR-010 브라우저·화면 | SRS 2.3.3, DESIGN.md | P1 / 초안 | 360·600·960·1440px, 지원 브라우저에서 주요 화면 동작 | DDS 7.2 / 미착수 | TC-CP-BRW-001, TC-CP-MOB-001, TC-CP-RES-001 | 미실행 |
-| NFR-011 웹 접근성 | SRS 4.7 | P2 / 초안 | 명도 대비 4.5:1, 키보드 조작 | DDS 7.5 체크리스트 / 미착수 | TC-AC-CLR-001, TC-AC-KBD-001, TC-AC-IMG-001 | 미실행 |
-| NFR-012 시간 기준 | BP-RESET-001-1, BP-ERROR-003-1 | P1 / 초안 | 23:59:59.999 허용 / 00:00:00.000 거절 | DDS 5.5 DayCalendar / 미착수 | TC-FN-TIME-001~002, TC-FN-SUB-002~003, TC-FN-ENR-004~006, TC-FN-CUR-004 | 미실행 |
-| NFR-013 코드 품질 | SRS 4.7 | P2 / 초안 | tsc·ESLint 오류 0, 도메인 함수 테스트 | DDS 7장 / 미착수 | N/A (CI 점검) | 미실행 |
-| NFR-014 개인정보 보호 | RC-01, BP-AUTH-005 | P1 / 초안 | 가입 동의 저장, 탈퇴 처리 절차 문서화 | DDS 5.1, SRS 6.3 / 보관 기간 미결 (ISSUE-05) | TC-SEC-PRIV-001 | 미실행 |
+| NFR-001 페이지 응답 | PRD 비기능, 서비스 기획서 5.5 | P1 / 구현 | 주요 화면 LCP p75 ≤ 3초, 서버 액션 p95 ≤ 800ms | DDS 7.2, 7.5 / `web/vercel.json` icn1 · `242719c` | TC-PF-PAGE-001~002, TC-PF-ACT-001, TC-PF-UPL-001 | 부분 3, 미실행 1 |
+| NFR-002 동시 사용자 | SRS 2.5 가정 2 | P2 / 미검증 | 동시 200명(마감 직전)에서 NFR-001 유지 | DDS 3.2, 3.3 / - | TC-PF-CON-001 | 미실행 1 (스테이징 없음) |
+| NFR-003 정기 작업 처리 시간 | BP-DONE-001-3 | P1 / 미구현 | 00:00 작업 5분, 판정 10분 | DDS 5.10 / - | TC-PF-JOB-001~002 | 미실행 2 |
+| NFR-004 인증·인가 | BP-AUTH-003, BP-CONTENT-001-3 | P1 / 일부 구현 | 전 테이블 RLS, 접근 표 각 칸 1건 이상 통과 | DDS 5.11 / `0002_app_adjust.sql`, `server/db.ts` · `748224c` | TC-SEC-RLS-001~015, TC-SEC-KEY-001~002, TC-SEC-AUTH-001 | 통과 6, 부분 4, 미실행 8 |
+| NFR-005 데이터 보호 | SRS 4.3 | P1 / 일부 (사진 저장소 없음) | 비공개 인증 사진은 서명 URL로만, XSS | DDS 5.6, 7.4 / - | TC-SEC-RLS-014, TC-SEC-XSS-001~002 | 통과 1, 미실행 2 |
+| NFR-006 관리자 작업 로그 | SRS 4.3 | P1 / 미구현 (테이블만, 기록 기능 없음) | 검수·승인·신고·정기 작업·정정 전수 기록, update·delete 불가 | DDS 5.10 / `0001_init.sql` admin_logs | TC-SEC-RLS-012, TC-SEC-LOG-001 | 부분 1, 미실행 1 |
+| NFR-007 서비스 가용성 | SRS 4.4 | P2 / 사업자 관리 | 월 99.5% | N/A | N/A | 운영 측정 없음 |
+| NFR-008 백업·복구 | SRS 4.4, 6.4 | P2 / 미결 (Supabase Free) | 일 1회 백업, 출시 전 복원 1회 성공 | ISSUE-04 | TC-OP-BAK-001 | 미실행 1 |
+| NFR-009 증가 대응 | SRS 4.5 | P3 / 미검증 | 가입자 1만 명 시드에서 NFR-001 유지 | DDS 5.8, 2.1 / - | TC-PF-SCL-001 | 미실행 1 |
+| NFR-010 브라우저·화면 | SRS 2.3.3, DESIGN.md | P1 / 구현 | 360·600·960·1440px, 지원 브라우저 | DDS 7.2 / Tailwind 반응형, `app/globals.css` | TC-CP-BRW-001, TC-CP-MOB-001, TC-CP-RES-001 | 부분 3 (Firefox 실행 실패) |
+| NFR-011 웹 접근성 | SRS 4.7 | P2 / 구현 | 명도 대비 4.5:1, 키보드 조작 | DDS 7.5 / 터치 영역 44px·라이트 모드 · `ed20e48`, `c1e5432`, `7da9354` | TC-AC-CLR-001, TC-AC-KBD-001, TC-AC-IMG-001 | 통과 1, 부분 2 |
+| NFR-012 시간 기준 | BP-RESET-001-1, BP-ERROR-003-1 | P1 / 구현 | 23:59:59.999 허용 / 00:00:00.000 거절 | DDS 5.5 / `domain/day-calendar.ts` · `c293853` | TC-FN-TIME-001~002, TC-FN-SUB-002~003, TC-FN-ENR-004~006, TC-FN-CUR-004 | 통과 7, 부분 1 (경계는 단위 테스트, 운영 E2E 미실행) |
+| NFR-013 코드 품질 | SRS 4.7 | P2 / 충족 (CI 없음) | tsc·ESLint 오류 0, 도메인 함수 테스트 | DDS 7장 / Vitest 65개 | N/A (CI 점검) | 2026-11-27 `f85c7de` 작업 트리: tsc 0, eslint 출력 없음, Vitest 65/65 |
+| NFR-014 개인정보 보호 | RC-01, BP-AUTH-005 | P1 / 일부 구현 (항목별 동의 없음) | 가입 동의 저장, 탈퇴 처리 절차 문서화 | DDS 5.1, SRS 6.3 / 가입 시 동의 시각 저장 | TC-SEC-PRIV-001 | 부분 1 |
 
-한 요구사항에 여러 수용 기준이나 TC가 있으면 각 기준의 판정과 근거를 [테스트 결과 보고서](../05-테스트/테스트결과보고서.md)에 연결한다. 테스트 실행 상태는 통과·실패·차단·미실행·건너뜀·해당 없음으로 기록한다.
+한 요구사항에 여러 수용 기준이나 TC가 있으면 각 기준의 판정과 근거를 [테스트 결과 보고서](../05-테스트/테스트결과보고서.md)와 [전체 테스트 실행 결과](../05-테스트/전체-테스트-실행-결과.md)에 연결한다.
 
 ### 5.1 역방향 추적: MVP-ID → FR
 
@@ -164,9 +167,10 @@
 | 지표 | 계산 | 실적 |
 | --- | --- | --- |
 | 설계 매핑률 | 설계 참조가 있는 요구사항 / 설계 대상 요구사항 | 35 / 36 (97%) — NFR-008 미결 |
-| 구현 매핑률 | 구현 참조가 있는 요구사항 / 구현 대상 요구사항 | 0 / 36 (0%) — 구현 시작 전 |
-| 테스트 매핑률 | TC가 연결된 요구사항 / 검증 대상 요구사항 | 35 / 35 (100%) — TCS-CHUP-v0.1 TC 정의 기준, 실행 0건 (NFR-013은 CI 점검) |
-| 수용 기준 검증 완료율 | 필수 수용 기준이 모두 검증된 요구사항 / 검증 대상 요구사항 | 0 / 35 (0%) — 테스트 미실행 |
+| 구현 매핑률 | 구현 참조가 있는 요구사항 / 구현 대상 요구사항 | 20 / 36 (56%) — FR 13개(001·002·004·010~015·017~020, FR-020은 계산 함수만), NFR 7개(001·004·010~014). 이 중 "일부 구현"이 다수 |
+| 테스트 매핑률 | TC가 연결된 요구사항 / 검증 대상 요구사항 | 35 / 35 (100%) — TC 정의 기준 (NFR-013은 CI 점검) |
+| TC 실행 요구사항 비율 | 실행된 TC가 하나 이상인 요구사항 / 검증 대상 | 21 / 35 (60%) |
+| 수용 기준 검증 완료율 | 연결된 TC가 모두 통과한 요구사항 / 검증 대상 요구사항 | 2 / 35 (6%) — FR-010, FR-014 |
 
 분모: FR-001~023 (23개) + NFR-001~006, 008~014 (13개) = 36개. 테스트 분모는 NFR-013을 뺀 35개.
 
@@ -180,7 +184,8 @@
 
 | 요구사항 ID | 요구사항명 | 미매핑 단계 | 사유 | 담당자 | 목표 해결일 |
 |------------|-----------|-----------|------|--------|-----------|
-| FR-001~023, NFR 전체 | 전체 | 구현, 테스트 실행 | 구현 시작 전. TC는 연결했으나 실행 전 | 개발·QA 담당 미정 | G4 / G5 |
+| FR-003, 005~009, 016, 021~023, NFR-003·006 | 미구현 기능 | 구현, 테스트 실행 | 학생 흐름만 구현 (2026-11-27) | 개발·QA 담당 미정 | 미정 |
+| FR-001·002·004·011~013·015·017~019, NFR 다수 | 일부 구현 | 테스트 실행 일부 | 미실행·부분 통과 TC 남음 | QA 담당 미정 | 미정 |
 | FR-001~023 | 전체 | 시스템 설계 (02) | SAD·DB·API·화면 설계서 미작성. 상세 설계서가 시스템 수준 결정을 가정(ASM)으로 대신함 | 설계 담당 미정 | G2 검토 전 (SRS ISSUE-06) |
 | NFR-008 | 백업·복구 | 설계 | Supabase 요금제 미정 | 개발 담당 미정 | 설계 착수 전 (ISSUE-04) |
 | NFR-014 | 개인정보 보호 | 설계 일부 | 보관 기간·파기 절차 법률 검토 전 | 기획 책임자 | 출시 전 (ISSUE-05) |
