@@ -1,896 +1,338 @@
 # 시스템 아키텍처 설계서 (SAD - System Architecture Document)
 
-> 회원·게시글 서비스, 기술 선택과 수치는 작성 예시입니다. 프로젝트에서 승인한 요구사항·정책에 맞춰 선택하고 관련 RTM 행에 근거를 연결합니다.
+> 챌린지업의 현재 구현 구조를 코드·마이그레이션·커밋 기록 기준으로 정리했다. 계획만 있고 구현되지 않은 부분은 "미구현", 확인하지 못한 부분은 "미확인"으로 적었다.
 
 | 항목 | 내용 |
 |------|------|
-| **프로젝트명** | [프로젝트명] |
-| **문서 버전** | [v1.0] |
-| **작성일** | [YYYY-MM-DD] |
-| **작성자** | [작성자명 / 역할] |
-| **승인자** | [승인자명 / 역할] |
-| **문서 상태** | [초안 / 검토중 / 승인됨] |
+| **문서 ID** | SAD-CHUP-v0.3 |
+| **프로젝트명** | 챌린지업 (ChallengeUp) |
+| **문서 버전** | 0.3 (구현 기준 재작성) |
+| **작성일** | 2026-11-27 |
+| **기준 커밋** | `f85c7de` |
+| **작성자** | Claude Code |
+| **승인자** | 미정 |
+| **문서 상태** | 초안 |
+| **근거** | `web/src/server/*`, `web/src/app/**`, `web/src/app/api/webhooks/groble/route.ts`, `web/vercel.json`, `web/package.json`, `web/.env.example`, `supabase/migrations/0001~0004`, 커밋 기록, CLAUDE.md, SRS-CHUP-v0.2 |
 
 ---
 
-## 1. 문서 개요
+## 1. 아키텍처 개요
 
-### 1.1 목적
+### 1.1 한 줄 요약
 
-본 문서는 [프로젝트명]의 시스템 아키텍처를 정의하고, 주요 기술적 결정 사항과 설계 원칙을 기술한다. 개발팀, 인프라팀, QA팀 등 프로젝트 이해관계자가 시스템의 전체 구조를 이해하고 일관된 방향으로 개발을 수행할 수 있도록 한다.
+Vercel(서울 `icn1`)에서 도는 Next.js 16 App Router 앱 하나가 화면(서버 컴포넌트)과 쓰기(서버 액션), 결제 웹훅(라우트 핸들러)을 모두 맡는다. 데이터는 Supabase Postgres에, 로그인은 Supabase Auth에 둔다. DB 접근은 서버에서 `service_role` 키로만 하고, 브라우저는 DB에 직접 닿지 않는다.
 
-### 1.2 범위
+### 1.2 아키텍처 스타일
 
-- 시스템 전체 아키텍처 구조 및 구성 요소
-- 기술 스택 선정 및 근거
-- 배포 아키텍처 및 인프라 구성
-- 비기능 요구사항에 대한 아키텍처 대응 전략
-- 시스템 간 통합 패턴
+| 항목 | 선택 | 근거 |
+|---|---|---|
+| 패턴 | 단일 Next.js 앱(모놀리식), 서버 렌더링 + 서버 액션 | `web/src/app`, `web/src/server/actions.ts` |
+| 쓰기 방식 | 서버 액션(`"use server"`). 별도 REST API 없음 | `actions.ts`, SRS 5.2.1 "외부 공개 REST API 없음 (MVP)" |
+| 외부 수신 | 라우트 핸들러 1개 `POST /api/webhooks/groble` | `app/api/webhooks/groble/route.ts` |
+| 데이터 | Supabase Postgres + Supabase Auth | `server/db.ts`, `server/session.ts` |
+| 배포 | Vercel, 함수 지역 `icn1` | `web/vercel.json`, 커밋 `242719c` |
+| 실행 모드 | DB 모드(환경 변수 있음) / 메모리 모드(없음) | `db.ts` `dbEnabled` |
 
-### 1.3 참조 문서
+### 1.3 기술 스택 (확인된 버전)
 
-| 문서명 | 버전 | 비고 |
-|--------|------|------|
-| 요구사항 정의서 (SRS) | [v1.0] | 기능/비기능 요구사항 |
-| 프로젝트 계획서 | [v1.0] | 일정 및 리소스 |
-| [추가 참조 문서] | [버전] | [비고] |
+| 영역 | 기술 | 버전 | 근거 |
+|---|---|---|---|
+| 프레임워크 | Next.js (App Router) | 16.4.6 | `package.json` |
+| UI | React / React DOM | 19.3.0 | `package.json` |
+| 스타일 | Tailwind CSS v4 (`@theme` 토큰) | 4.3.3 | `package.json`, `globals.css` |
+| DB 클라이언트 | `@supabase/supabase-js` | ^2.119.2 | `package.json` |
+| 세션 | `@supabase/ssr` (쿠키) | ^0.12.7 | `package.json` |
+| 테스트 | Vitest | ^3.2.7 | `package.json` |
+| 언어 | TypeScript | ^5 | `package.json` |
+| 분석 | Google Analytics 4 (`G-M7JKKTBECS`) | - | `app/layout.tsx` |
+| Postgres 버전 | - | 미확인 | - |
 
-### 1.4 변경 이력
-
-| 버전 | 날짜 | 작성자 | 변경 내용 |
-|------|------|--------|-----------|
-| v0.1 | [YYYY-MM-DD] | [작성자] | 초안 작성 |
-| v0.2 | [YYYY-MM-DD] | [작성자] | [변경 사항 요약] |
-| v1.0 | [YYYY-MM-DD] | [작성자] | 최종 승인 |
-
-### 1.5 용어 정의
-
-| 용어 | 정의 |
-|------|------|
-| [용어1] | [정의] |
-| [용어2] | [정의] |
-| [용어3] | [정의] |
+CLAUDE.md의 계획 스택 중 shadcn/ui는 설치되어 있지 않다(`package.json`에 없음).
 
 ---
 
-## 2. 아키텍처 개요
-
-### 2.1 아키텍처 스타일 선택
-
-#### 선택된 아키텍처 스타일
-
-**[Layered Architecture / Microservices / Event-Driven / Hexagonal / 기타]**
-
-#### 후보 아키텍처 스타일 비교
-
-| 평가 항목 | Layered | Microservices | Event-Driven | Hexagonal |
-|-----------|---------|---------------|--------------|-----------|
-| 구현 복잡도 | 낮음 | 높음 | 중간 | 중간 |
-| 확장성 | 중간 | 높음 | 높음 | 중간 |
-| 유지보수성 | 중간 | 높음 | 중간 | 높음 |
-| 팀 역량 적합성 | [평가] | [평가] | [평가] | [평가] |
-| 배포 유연성 | 낮음 | 높음 | 높음 | 중간 |
-| 운영 복잡도 | 낮음 | 높음 | 중간 | 낮음 |
-| **종합 점수** | [점수] | [점수] | [점수] | [점수] |
-
-#### 선택 근거
-
-- [근거 1: 예) 팀 규모와 역량을 고려했을 때 적합]
-- [근거 2: 예) 비기능 요구사항(확장성, 가용성)을 충족]
-- [근거 3: 예) 프로젝트 일정 내 구현 가능]
-- [근거 4: 예) 향후 확장 계획에 부합]
-
-### 2.2 아키텍처 원칙
-
-| 원칙 | 설명 | 적용 방법 |
-|------|------|-----------|
-| 관심사 분리 (Separation of Concerns) | 각 계층/모듈은 단일 책임을 가짐 | [구체적 적용 방법] |
-| 느슨한 결합 (Loose Coupling) | 모듈 간 의존성 최소화 | [구체적 적용 방법] |
-| 높은 응집도 (High Cohesion) | 관련 기능을 하나의 모듈로 그룹화 | [구체적 적용 방법] |
-| DRY (Don't Repeat Yourself) | 코드 및 로직 중복 방지 | [구체적 적용 방법] |
-| SOLID 원칙 | 객체지향 설계 5원칙 준수 | [구체적 적용 방법] |
-| [추가 원칙] | [설명] | [적용 방법] |
-
-### 2.3 시스템 컨텍스트 다이어그램
-
-시스템과 외부 시스템/액터 간의 관계를 나타낸다.
-
-```mermaid
-flowchart TB
-    subgraph 외부 사용자
-        U1[일반 사용자]
-        U2[관리자]
-    end
-
-    subgraph 외부 시스템
-        EXT1[외부 인증 시스템<br/>OAuth Provider]
-        EXT2[이메일 서비스<br/>SMTP / SendGrid]
-        EXT3[결제 시스템<br/>PG사 API]
-        EXT4[외부 API<br/>서드파티 연동]
-        EXT5[모니터링 시스템<br/>DataDog / Grafana]
-    end
-
-    SYS["[프로젝트명]<br/>시스템"]
-
-    U1 -->|웹/모바일 접속| SYS
-    U2 -->|관리 콘솔 접속| SYS
-    SYS -->|OAuth 2.0 인증| EXT1
-    SYS -->|알림 메일 발송| EXT2
-    SYS -->|결제 처리| EXT3
-    SYS -->|데이터 연동| EXT4
-    SYS -->|메트릭/로그 전송| EXT5
-
-    style SYS fill:#4A90D9,color:#fff,stroke:#2C5F8A
-```
-
-### 2.4 컨테이너 다이어그램
-
-시스템 내부의 주요 컨테이너(어플리케이션, 데이터 저장소 등)를 나타낸다.
-
-```mermaid
-flowchart TB
-    subgraph 클라이언트
-        WEB[Web Application<br/>React / Vue / Angular<br/>SPA]
-        MOBILE[Mobile Application<br/>React Native / Flutter]
-    end
-
-    subgraph 시스템 경계
-        GW[API Gateway<br/>Kong / AWS API Gateway<br/>라우팅, 인증, Rate Limiting]
-
-        subgraph 백엔드 서비스
-            API[API Server<br/>Node.js / Spring Boot / Django<br/>비즈니스 로직]
-            AUTH[Auth Service<br/>인증/인가 처리<br/>JWT 발급]
-            NOTI[Notification Service<br/>알림 처리<br/>이메일, 푸시]
-            FILE[File Service<br/>파일 업로드/다운로드<br/>리사이징]
-        end
-
-        subgraph 데이터 저장소
-            RDB[(Primary DB<br/>PostgreSQL / MySQL<br/>트랜잭션 데이터)]
-            CACHE[(Cache<br/>Redis<br/>세션, 캐시)]
-            SEARCH[(Search Engine<br/>Elasticsearch<br/>검색 인덱스)]
-            STORAGE[(Object Storage<br/>S3 / MinIO<br/>파일 저장)]
-        end
-
-        MQ[Message Queue<br/>RabbitMQ / Kafka<br/>비동기 처리]
-    end
-
-    WEB -->|HTTPS / REST| GW
-    MOBILE -->|HTTPS / REST| GW
-    GW --> API
-    GW --> AUTH
-    API --> RDB
-    API --> CACHE
-    API --> SEARCH
-    API --> MQ
-    AUTH --> RDB
-    AUTH --> CACHE
-    MQ --> NOTI
-    MQ --> FILE
-    FILE --> STORAGE
-
-    style GW fill:#E8A838,color:#fff
-    style API fill:#4A90D9,color:#fff
-    style AUTH fill:#4A90D9,color:#fff
-    style NOTI fill:#4A90D9,color:#fff
-    style FILE fill:#4A90D9,color:#fff
-    style RDB fill:#5BA85B,color:#fff
-    style CACHE fill:#D94A4A,color:#fff
-```
-
-### 2.5 컴포넌트 다이어그램
-
-API Server 내부의 주요 모듈/컴포넌트 구성을 나타낸다.
-
-```mermaid
-flowchart TB
-    subgraph API Server
-        subgraph Presentation Layer
-            CTRL[Controllers<br/>요청/응답 처리]
-            MW[Middleware<br/>인증, 로깅, 에러 처리]
-            VALID[Validators<br/>입력 검증]
-        end
-
-        subgraph Application Layer
-            UC[Use Cases<br/>비즈니스 유스케이스]
-            DTO[DTOs<br/>데이터 전송 객체]
-            MAPPER[Mappers<br/>객체 변환]
-        end
-
-        subgraph Domain Layer
-            ENT[Entities<br/>도메인 엔티티]
-            VO[Value Objects<br/>값 객체]
-            SVC[Domain Services<br/>도메인 로직]
-            REPO_IF[Repository Interfaces<br/>저장소 인터페이스]
-        end
-
-        subgraph Infrastructure Layer
-            REPO[Repositories<br/>데이터 접근 구현]
-            EXT_CL[External Clients<br/>외부 API 연동]
-            MSG[Message Publishers<br/>메시지 발행]
-            CACHE_CL[Cache Client<br/>캐시 접근]
-        end
-    end
-
-    CTRL --> MW --> VALID
-    CTRL --> UC
-    UC --> SVC
-    UC --> REPO_IF
-    SVC --> ENT
-    SVC --> VO
-    REPO_IF -.->|구현| REPO
-    UC --> EXT_CL
-    UC --> MSG
-    UC --> CACHE_CL
-
-    style CTRL fill:#E8A838,color:#fff
-    style UC fill:#4A90D9,color:#fff
-    style ENT fill:#5BA85B,color:#fff
-    style REPO fill:#8B5CF6,color:#fff
-```
-
----
-
-## 3. 기술 스택 선정
-
-### 3.1 선정 기준 매트릭스
-
-각 기술은 아래 기준으로 평가한다 (1~5점 척도).
-
-| 평가 항목 | 가중치 | 설명 |
-|-----------|--------|------|
-| 성능 (Performance) | [20%] | 처리 속도, 동시 접속 처리 능력 |
-| 생태계 (Ecosystem) | [20%] | 라이브러리, 프레임워크, 도구 풍부도 |
-| 학습 곡선 (Learning Curve) | [15%] | 팀원들의 습득 용이성 |
-| 라이선스 (License) | [10%] | 상용 사용 가능 여부, 비용 |
-| 커뮤니티 (Community) | [15%] | 활성도, 문서 품질, 지원 |
-| 안정성 (Stability) | [10%] | 프로덕션 검증 수준, 버그 빈도 |
-| 팀 역량 (Team Fit) | [10%] | 현재 팀의 경험 및 숙련도 |
-
-### 3.2 프론트엔드 기술 선정
-
-#### 선정 결과
-
-| 영역 | 선정 기술 | 버전 | 선정 근거 |
-|------|-----------|------|-----------|
-| Framework | [React / Vue / Angular] | [버전] | [근거] |
-| 상태 관리 | [Redux / Zustand / Pinia] | [버전] | [근거] |
-| 스타일링 | [Tailwind CSS / styled-components / CSS Modules] | [버전] | [근거] |
-| 빌드 도구 | [Vite / Webpack / Turbopack] | [버전] | [근거] |
-| 테스트 | [Jest / Vitest / Cypress] | [버전] | [근거] |
-| HTTP 클라이언트 | [Axios / fetch / ky] | [버전] | [근거] |
-| 라우팅 | [React Router / Vue Router] | [버전] | [근거] |
-
-#### 평가 상세
-
-| 평가 항목 | [후보1] | [후보2] | [후보3] |
-|-----------|---------|---------|---------|
-| 성능 | [점수] | [점수] | [점수] |
-| 생태계 | [점수] | [점수] | [점수] |
-| 학습 곡선 | [점수] | [점수] | [점수] |
-| 라이선스 | [점수] | [점수] | [점수] |
-| 커뮤니티 | [점수] | [점수] | [점수] |
-| 안정성 | [점수] | [점수] | [점수] |
-| 팀 역량 | [점수] | [점수] | [점수] |
-| **가중 합계** | **[총점]** | **[총점]** | **[총점]** |
-
-### 3.3 백엔드 기술 선정
-
-#### 선정 결과
-
-| 영역 | 선정 기술 | 버전 | 선정 근거 |
-|------|-----------|------|-----------|
-| Language | [TypeScript / Java / Python / Go] | [버전] | [근거] |
-| Framework | [NestJS / Spring Boot / Django / Gin] | [버전] | [근거] |
-| ORM | [TypeORM / Prisma / JPA / SQLAlchemy] | [버전] | [근거] |
-| 인증 | [Passport.js / Spring Security / 자체 구현] | [버전] | [근거] |
-| 테스트 | [Jest / JUnit / pytest] | [버전] | [근거] |
-| API 문서화 | [Swagger / OpenAPI / Redoc] | [버전] | [근거] |
-| 로깅 | [Winston / Log4j / structlog] | [버전] | [근거] |
-
-#### 평가 상세
-
-| 평가 항목 | [후보1] | [후보2] | [후보3] |
-|-----------|---------|---------|---------|
-| 성능 | [점수] | [점수] | [점수] |
-| 생태계 | [점수] | [점수] | [점수] |
-| 학습 곡선 | [점수] | [점수] | [점수] |
-| 라이선스 | [점수] | [점수] | [점수] |
-| 커뮤니티 | [점수] | [점수] | [점수] |
-| 안정성 | [점수] | [점수] | [점수] |
-| 팀 역량 | [점수] | [점수] | [점수] |
-| **가중 합계** | **[총점]** | **[총점]** | **[총점]** |
-
-### 3.4 데이터베이스 기술 선정
-
-| 영역 | 선정 기술 | 버전 | 선정 근거 |
-|------|-----------|------|-----------|
-| Primary DB | [PostgreSQL / MySQL / MariaDB] | [버전] | [근거] |
-| Cache | [Redis / Memcached] | [버전] | [근거] |
-| Search Engine | [Elasticsearch / OpenSearch / Meilisearch] | [버전] | [근거 또는 N/A] |
-| Message Queue | [RabbitMQ / Apache Kafka / SQS] | [버전] | [근거 또는 N/A] |
-| Object Storage | [AWS S3 / MinIO / GCS] | [버전] | [근거] |
-
-### 3.5 인프라 기술 선정
-
-| 영역 | 선정 기술 | 버전 | 선정 근거 |
-|------|-----------|------|-----------|
-| 클라우드 | [AWS / GCP / Azure / 온프레미스] | - | [근거] |
-| 컨테이너 | [Docker / Podman] | [버전] | [근거] |
-| 오케스트레이션 | [Kubernetes / ECS / Docker Compose] | [버전] | [근거] |
-| CI/CD | [GitHub Actions / GitLab CI / Jenkins] | - | [근거] |
-| IaC | [Terraform / Pulumi / CloudFormation] | [버전] | [근거] |
-| 모니터링 | [Grafana + Prometheus / DataDog / CloudWatch] | - | [근거] |
-| 로그 관리 | [ELK Stack / Loki / CloudWatch Logs] | - | [근거] |
-
-### 3.6 대안 기술 및 불채택 사유
-
-| 영역 | 불채택 기술 | 불채택 사유 |
-|------|-------------|-------------|
-| 프론트엔드 | [기술명] | [사유: 예) 팀 경험 부족, 생태계 미성숙] |
-| 백엔드 | [기술명] | [사유] |
-| DB | [기술명] | [사유] |
-| 인프라 | [기술명] | [사유] |
-| [추가] | [기술명] | [사유] |
-
----
-
-## 4. 배포 아키텍처
-
-### 4.1 배포 다이어그램
-
-```mermaid
-flowchart TB
-    subgraph 인터넷
-        USER[사용자]
-        CDN[CDN<br/>CloudFront / Cloudflare]
-    end
-
-    subgraph "클라우드 환경 [AWS / GCP / 온프레미스]"
-        subgraph "Public Subnet"
-            ALB[Application Load Balancer<br/>L7 로드 밸런서]
-            WAF[WAF<br/>웹 방화벽]
-        end
-
-        subgraph "Private Subnet - Application"
-            subgraph "Container Cluster [ECS / K8s]"
-                APP1[API Server #1<br/>컨테이너]
-                APP2[API Server #2<br/>컨테이너]
-                APP3[Worker #1<br/>비동기 처리]
-            end
-        end
-
-        subgraph "Private Subnet - Data"
-            DB_PRIMARY[(Primary DB<br/>PostgreSQL)]
-            DB_REPLICA[(Read Replica<br/>PostgreSQL)]
-            REDIS[(Redis Cluster<br/>캐시/세션)]
-            MQ_SVC[Message Queue<br/>RabbitMQ / SQS]
-        end
-
-        subgraph "Storage"
-            S3_BUCKET[(Object Storage<br/>S3 / GCS)]
-        end
-
-        subgraph "Monitoring"
-            MON[모니터링<br/>Grafana + Prometheus]
-            LOG[로그 수집<br/>ELK / Loki]
-            ALERT[알림<br/>PagerDuty / Slack]
-        end
-    end
-
-    USER -->|HTTPS| CDN
-    CDN -->|정적 자산| S3_BUCKET
-    CDN -->|API 요청| WAF
-    WAF --> ALB
-    ALB --> APP1
-    ALB --> APP2
-    APP1 --> DB_PRIMARY
-    APP1 --> DB_REPLICA
-    APP1 --> REDIS
-    APP1 --> MQ_SVC
-    APP2 --> DB_PRIMARY
-    APP2 --> DB_REPLICA
-    APP2 --> REDIS
-    MQ_SVC --> APP3
-    APP3 --> DB_PRIMARY
-    DB_PRIMARY -->|복제| DB_REPLICA
-    APP1 --> MON
-    APP2 --> MON
-    MON --> ALERT
-
-    style ALB fill:#E8A838,color:#fff
-    style APP1 fill:#4A90D9,color:#fff
-    style APP2 fill:#4A90D9,color:#fff
-    style APP3 fill:#4A90D9,color:#fff
-    style DB_PRIMARY fill:#5BA85B,color:#fff
-    style DB_REPLICA fill:#5BA85B,color:#fff
-    style REDIS fill:#D94A4A,color:#fff
-```
-
-### 4.2 환경 구성
-
-| 환경 | 용도 | URL 패턴 | 인프라 규모 | 데이터 |
-|------|------|----------|-------------|--------|
-| **Development (DEV)** | 개발/디버깅 | `dev.[도메인]` | 최소 (단일 인스턴스) | 테스트 데이터 |
-| **Staging (STG)** | 통합 테스트, QA | `stg.[도메인]` | 운영의 축소 구성 | 익명화된 운영 데이터 복제 |
-| **Production (PROD)** | 실서비스 운영 | `[도메인]` | 고가용성 구성 | 실 데이터 |
-
-#### 환경별 상세 구성
-
-| 구성 요소 | DEV | STG | PROD |
-|-----------|-----|-----|------|
-| API Server 인스턴스 | 1 | 2 | [N개, 오토스케일링] |
-| DB 구성 | 단일 | Primary + Replica | Primary + Multi-Replica |
-| Redis | 단일 | 단일 | Cluster (3노드 이상) |
-| CDN | 미사용 | 사용 | 사용 |
-| WAF | 미사용 | 사용 | 사용 |
-| 모니터링 수준 | 기본 로깅 | 전체 | 전체 + 알림 |
-| SSL/TLS | 자체 서명 | Let's Encrypt | 상용 인증서 |
-| 백업 주기 | 미실시 | 일 1회 | [백업 정책에 따름] |
-
-### 4.3 CI/CD 파이프라인
+## 2. 시스템 컨텍스트
 
 ```mermaid
 flowchart LR
-    subgraph "소스 관리"
-        GIT[Git Repository<br/>GitHub / GitLab]
-    end
-
-    subgraph "CI 파이프라인"
-        LINT[Lint / Format<br/>ESLint, Prettier]
-        TEST[Unit Test<br/>Jest / JUnit]
-        BUILD[Build<br/>Docker Image]
-        SCAN[보안 스캔<br/>SonarQube, Trivy]
-        PUSH[이미지 Push<br/>ECR / GCR]
-    end
-
-    subgraph "CD 파이프라인"
-        DEV_DEPLOY[DEV 배포<br/>자동]
-        STG_DEPLOY[STG 배포<br/>자동]
-        INT_TEST[통합 테스트<br/>E2E Test]
-        APPROVAL[수동 승인<br/>배포 관리자]
-        PROD_DEPLOY[PROD 배포<br/>Blue-Green / Rolling]
-    end
-
-    GIT -->|Push / PR| LINT
-    LINT --> TEST
-    TEST --> BUILD
-    BUILD --> SCAN
-    SCAN -->|통과| PUSH
-    PUSH --> DEV_DEPLOY
-    DEV_DEPLOY --> STG_DEPLOY
-    STG_DEPLOY --> INT_TEST
-    INT_TEST -->|통과| APPROVAL
-    APPROVAL -->|승인| PROD_DEPLOY
-
-    style LINT fill:#E8A838,color:#fff
-    style TEST fill:#4A90D9,color:#fff
-    style SCAN fill:#D94A4A,color:#fff
-    style APPROVAL fill:#8B5CF6,color:#fff
-    style PROD_DEPLOY fill:#5BA85B,color:#fff
+    U["사용자 브라우저<br/>비회원·학생·강사"] -- "HTTPS 페이지 요청·서버 액션" --> V["Vercel 함수 icn1<br/>Next.js 16 App Router"]
+    U -- "gtag 스크립트" --> GA["Google Analytics 4<br/>G-M7JKKTBECS"]
+    G["그로블 결제"] -- "POST /api/webhooks/groble<br/>x-groble-signature" --> V
+    V -- "service_role 키<br/>supabase-js" --> DB[("Supabase Postgres<br/>ap-northeast-2")]
+    V -- "anon 키 + 세션 쿠키<br/>@supabase/ssr" --> AUTH["Supabase Auth"]
+    V -- "service_role<br/>auth.admin" --> AUTH
 ```
 
-#### CI 단계 상세
+| 외부 요소 | 역할 | 연결 방식 | 근거 |
+|---|---|---|---|
+| Supabase Postgres | 모든 업무 데이터 | 서버에서 `service_role` 키 | `db.ts` |
+| Supabase Auth | 가입·로그인·세션 | 로그인·세션: anon 키 + 쿠키(`authClient`) / 가입·웹훅 회원 찾기: `auth.admin` | `session.ts`, `actions.ts`, `route.ts` |
+| 그로블 | 결제 완료 알림 → 자동 신청 | 웹훅(HMAC 서명) | `groble.ts`, `route.ts` |
+| Google Analytics 4 | 방문 측정 | `next/script` `afterInteractive` | `layout.tsx` |
+| 메일 발송 | 없음. 가입 시 `email_confirm: true`로 바로 확인 처리 | - | `actions.ts` 주석 |
 
-| 단계 | 도구 | 트리거 조건 | 실패 시 동작 |
-|------|------|-------------|--------------|
-| 코드 품질 검사 | [ESLint / SonarQube] | PR 생성, Push | PR 머지 차단 |
-| 단위 테스트 | [Jest / JUnit] | PR 생성, Push | PR 머지 차단 |
-| 커버리지 확인 | [Istanbul / JaCoCo] | PR 생성 | 기준 미달 시 경고 ([N]% 이상) |
-| Docker 빌드 | [Docker / Buildah] | 머지 시 | 파이프라인 중단 |
-| 보안 스캔 | [Trivy / Snyk] | 빌드 완료 후 | Critical 취약점 시 중단 |
-| 이미지 Push | [ECR / GCR / Docker Hub] | 스캔 통과 후 | 파이프라인 중단 |
-
-#### CD 단계 상세
-
-| 환경 | 배포 전략 | 트리거 | 롤백 방법 |
-|------|-----------|--------|-----------|
-| DEV | 직접 배포 | main 머지 시 자동 | 이전 이미지 재배포 |
-| STG | [Blue-Green / Rolling] | DEV 성공 후 자동 | 이전 버전 전환 |
-| PROD | [Blue-Green / Canary / Rolling] | 수동 승인 후 | [롤백 전략 상세] |
-
-### 4.4 인프라 코드(IaC) 전략
-
-| 항목 | 내용 |
-|------|------|
-| IaC 도구 | [Terraform / Pulumi / CloudFormation] |
-| 상태 관리 | [S3 + DynamoDB Lock / Terraform Cloud / 기타] |
-| 모듈 구조 | 환경별(dev/stg/prod) 분리, 공통 모듈 재사용 |
-| 버전 관리 | Git 기반, 코드 리뷰 필수 |
-| 적용 프로세스 | Plan 검토 -> 승인 -> Apply |
-
-#### IaC 디렉토리 구조
-
-```
-infra/
-├── modules/
-│   ├── networking/       # VPC, Subnet, Security Group
-│   ├── compute/          # ECS / EKS / EC2
-│   ├── database/         # RDS, ElastiCache
-│   ├── storage/          # S3, EFS
-│   └── monitoring/       # CloudWatch, Grafana
-├── environments/
-│   ├── dev/
-│   │   ├── main.tf
-│   │   ├── variables.tf
-│   │   └── terraform.tfvars
-│   ├── stg/
-│   └── prod/
-├── backend.tf
-└── versions.tf
-```
+Supabase 프로젝트 이름 `challengeup`, 지역 `ap-northeast-2`는 마이그레이션 주석에 적혀 있다. 운영 URL·도메인은 미확인.
 
 ---
 
-## 5. 아키텍처 결정 기록 (ADR)
+## 3. 구성 요소
 
-### 5.1 ADR 템플릿
-
-```
-## ADR-[NNN]: [결정 제목]
-
-| 항목 | 내용 |
-|------|------|
-| **ADR ID** | ADR-[NNN] |
-| **상태** | [제안(Proposed) / 승인(Accepted) / 폐기(Deprecated) / 대체(Superseded by ADR-XXX)] |
-| **날짜** | [YYYY-MM-DD] |
-| **의사결정자** | [이름 / 역할] |
-
-### 컨텍스트 (Context)
-[결정이 필요한 배경과 상황을 기술한다.]
-
-### 결정 (Decision)
-[내린 결정을 명확하게 기술한다.]
-
-### 근거 (Rationale)
-[결정의 이유와 고려한 대안들을 기술한다.]
-- 선택지 1: [설명] — [장점/단점]
-- 선택지 2: [설명] — [장점/단점]
-- 선택지 3: [설명] — [장점/단점]
-
-### 결과 (Consequences)
-- 긍정적: [기대되는 긍정적 결과]
-- 부정적: [감수해야 할 부정적 결과 또는 트레이드오프]
-- 중립적: [기타 영향]
-```
-
-### 5.2 ADR 목록
-
-| ADR ID | 제목 | 상태 | 날짜 |
-|--------|------|------|------|
-| ADR-001 | [백엔드 프레임워크 선정] | [승인] | [YYYY-MM-DD] |
-| ADR-002 | [인증 방식 결정] | [승인] | [YYYY-MM-DD] |
-| [ADR-NNN] | [제목] | [상태] | [날짜] |
-
-### 5.3 ADR 예시
-
-#### ADR-001: 백엔드 프레임워크로 [NestJS / Spring Boot] 선정
-
-| 항목 | 내용 |
-|------|------|
-| **ADR ID** | ADR-001 |
-| **상태** | 승인 (Accepted) |
-| **날짜** | [YYYY-MM-DD] |
-| **의사결정자** | [기술 리드, 시니어 개발자] |
-
-**컨텍스트**
-
-[프로젝트명]의 백엔드 서비스를 구현할 프레임워크를 선정해야 한다. 팀은 [N]명의 개발자로 구성되어 있으며, [TypeScript / Java]에 대한 경험이 [상/중/하] 수준이다. 시스템은 [동시 접속자 수], [트랜잭션 처리량] 등의 요구사항을 충족해야 한다.
-
-**결정**
-
-백엔드 프레임워크로 **[NestJS / Spring Boot]**를 선정한다.
-
-**근거**
-
-- 선택지 1: NestJS — TypeScript 기반, 모듈 구조 체계적, 프론트엔드와 언어 통일 가능. 단, 대규모 엔터프라이즈 레퍼런스 상대적으로 적음.
-- 선택지 2: Spring Boot — Java 기반, 엔터프라이즈 검증 완료, 풍부한 생태계. 단, 팀 Java 경험이 부족하면 학습 곡선 존재.
-- 선택지 3: Django — Python 기반, 빠른 프로토타이핑 가능. 단, 대규모 비동기 처리 성능에 제약.
-
-[선택한 프레임워크]를 선정한 주요 이유: [구체적 이유 2~3가지]
-
-**결과**
-
-- 긍정적: [예) 프론트엔드와 동일 언어 사용으로 코드 공유 및 팀 효율성 향상]
-- 부정적: [예) 특정 엔터프라이즈 패턴 구현 시 추가 라이브러리 필요]
-- 중립적: [예) 기존 레거시 시스템과의 통합을 위한 어댑터 패턴 적용 필요]
-
----
-
-#### ADR-002: JWT 기반 인증과 세션 쿠키 방식 중 JWT 선정
-
-| 항목 | 내용 |
-|------|------|
-| **ADR ID** | ADR-002 |
-| **상태** | 승인 (Accepted) |
-| **날짜** | [YYYY-MM-DD] |
-| **의사결정자** | [기술 리드, 보안 담당자] |
-
-**컨텍스트**
-
-사용자 인증 및 인가 방식을 결정해야 한다. 시스템은 웹과 모바일 클라이언트를 모두 지원해야 하며, [마이크로서비스 / 모놀리식] 구조에서 서비스 간 인증 정보 전달이 필요하다.
-
-**결정**
-
-**JWT (JSON Web Token)** 기반 인증 방식을 채택한다. Access Token + Refresh Token 조합을 사용한다.
-
-**근거**
-
-- 선택지 1: JWT — Stateless, 서비스 간 전파 용이, 모바일 친화적. 단, 토큰 무효화 즉시 불가(만료까지 대기 또는 블랙리스트 관리 필요).
-- 선택지 2: 세션 쿠키 — 서버측 세션 관리로 즉시 무효화 가능, 구현 단순. 단, 서비스 확장 시 세션 공유 문제, 모바일 앱에서 쿠키 관리 복잡.
-- 선택지 3: OAuth 2.0 + OIDC — 표준 프로토콜, 소셜 로그인 지원 용이. 단, 자체 구현 복잡도 높음.
-
-JWT를 선정한 주요 이유: 웹/모바일 통합 지원, Stateless 아키텍처에 적합, 서비스 간 인증 정보 전달 용이.
-
-**결과**
-
-- 긍정적: Stateless 구조로 수평 확장 용이, 클라이언트 플랫폼 독립적
-- 부정적: 토큰 즉시 무효화를 위해 Redis 기반 블랙리스트 구현 필요
-- 중립적: Refresh Token 로테이션 및 보안 저장 정책 별도 수립 필요
-
----
-
-## 6. 비기능 요구사항 대응 설계
-
-### 6.1 성능 (Performance)
-
-#### 성능 목표
-
-| 지표 | 목표 값 | 측정 방법 |
-|------|---------|-----------|
-| API 응답 시간 (P50) | [< 200ms] | [APM 도구] |
-| API 응답 시간 (P95) | [< 500ms] | [APM 도구] |
-| API 응답 시간 (P99) | [< 1000ms] | [APM 도구] |
-| 동시 접속자 수 | [N명] | [부하 테스트] |
-| 초당 요청 수 (RPS) | [N건/초] | [부하 테스트] |
-| 페이지 로딩 시간 | [< 2초] | [Lighthouse] |
-
-#### 캐싱 전략
-
-| 캐시 대상 | 캐시 저장소 | TTL | 무효화 전략 |
-|-----------|-------------|-----|-------------|
-| API 응답 (목록 조회) | Redis | [N분] | 데이터 변경 시 삭제 |
-| 사용자 세션 | Redis | [N시간] | 로그아웃 시 삭제 |
-| 정적 자산 (JS/CSS/이미지) | CDN | [N일] | 배포 시 버전 갱신 |
-| DB 쿼리 결과 | Redis | [N분] | Write-Through / Write-Behind |
-| [추가 대상] | [저장소] | [TTL] | [전략] |
-
-#### CDN 구성
-
-| 항목 | 설정 |
-|------|------|
-| CDN 서비스 | [CloudFront / Cloudflare / Akamai] |
-| 캐시 대상 | 정적 자산 (JS, CSS, 이미지, 폰트) |
-| 오리진 | [S3 / API Server] |
-| 캐시 정책 | [Cache-Control 헤더 기반] |
-| 무효화 | [배포 시 자동 Invalidation / 파일 해시 기반] |
-
-#### 데이터베이스 최적화
-
-| 최적화 항목 | 적용 전략 | 상세 |
-|-------------|-----------|------|
-| 쿼리 최적화 | 인덱스, 쿼리 플랜 분석 | [상세 전략] |
-| 커넥션 풀링 | [HikariCP / pg-pool] | 최소 [N], 최대 [N] 커넥션 |
-| 읽기/쓰기 분리 | Read Replica 활용 | 읽기 전용 쿼리를 Replica로 라우팅 |
-| N+1 문제 방지 | Eager Loading / DataLoader | [상세 전략] |
-| [추가 항목] | [전략] | [상세] |
-
-### 6.2 보안 (Security)
-
-#### 인증/인가 아키텍처
+### 3.1 코드 구조
 
 ```mermaid
-flowchart LR
-    CLIENT[클라이언트] -->|1. 로그인 요청| AUTH[Auth Service]
-    AUTH -->|2. 자격 증명 검증| DB[(User DB)]
-    AUTH -->|3. JWT 발급| CLIENT
-    CLIENT -->|4. API 요청 + Bearer Token| GW[API Gateway]
-    GW -->|5. 토큰 검증| AUTH
-    GW -->|6. 인가된 요청 전달| API[API Service]
-    API -->|7. RBAC 검사| API
-    API -->|8. 응답| CLIENT
+flowchart TB
+    subgraph Browser["브라우저 (클라이언트 컴포넌트)"]
+        C1["AuthForm · EnrollButton · CheckinForm<br/>Feed · Leaderboard · ExploreList · HomeTabs · ConfirmDialog"]
+        SA["lib/safe-action.ts<br/>연결 실패 → 일반 실패 결과"]
+    end
+    subgraph Server["Vercel 함수 (서버)"]
+        P["app/** 서버 컴포넌트 페이지·레이아웃"]
+        A["server/actions.ts<br/>서버 액션 12개"]
+        W["app/api/webhooks/groble/route.ts"]
+        S["server/session.ts<br/>loadStore · sessionUserId · mutate"]
+        ST["server/store.ts<br/>상태 + 업무 규칙 실행"]
+        D["server/db.ts<br/>loadState · persist"]
+        GR["server/groble.ts<br/>서명 확인"]
+        DOM["domain/*<br/>순수 함수: 포인트·스트릭·날짜·검증"]
+        DATA["lib/data.ts<br/>챌린지·Day 시드"]
+    end
+    C1 --> SA --> A
+    P --> S
+    P --> ST
+    A --> S --> D
+    A --> ST
+    W --> GR
+    W --> S
+    ST --> DOM
+    ST --> DATA
+    D --> DB[("Supabase")]
 ```
 
-#### 보안 계층별 대응
+| 모듈 | 책임 | 비고 |
+|---|---|---|
+| `app/**` | 화면. 서버 컴포넌트에서 `store.ts` 조회 함수를 직접 부른다 | 화면 목록은 화면설계서 |
+| `server/actions.ts` | 서버 액션. 로그인 확인 후 `mutate()`로 규칙 실행 | API설계서 3장 |
+| `server/session.ts` | 요청 단위 준비: 상태 불러오기(`cache`), 로그인 사용자 확인, 변경 저장 | |
+| `server/store.ts` | 메모리 상태(`globalThis.__cuStore`)와 업무 규칙(신청·인증·글·좋아요·댓글·리더보드) | 규칙은 `domain/` 순수 함수 사용 |
+| `server/db.ts` | DB → 상태 변환(`loadState`), 바뀐 부분만 DB에 쓰기(`persist`) | |
+| `server/groble.ts` | HMAC-SHA256 서명·시각 확인 | 단위 테스트 `groble.test.ts` |
+| `domain/*` | 포인트·레벨·스트릭·Day 날짜·입력 검증 | 단위 테스트 `domain.test.ts`, `signup.test.ts` |
+| `lib/data.ts` | 챌린지 8개·Day 제목·미션 설명 시드 | DB 모드에서도 챌린지 정보는 여기서 읽음(4.3) |
 
-| 계층 | 위협 | 대응 방안 |
-|------|------|-----------|
-| 네트워크 | DDoS, 중간자 공격 | WAF, TLS 1.3, VPC 격리 |
-| 인증 | 무차별 대입, 세션 탈취 | Rate Limiting, JWT 만료, Refresh Token 로테이션 |
-| 인가 | 권한 상승, IDOR | RBAC/ABAC, 리소스 소유권 검증 |
-| 입력 | SQL Injection, XSS, CSRF | 파라미터 바인딩, CSP, CSRF 토큰 |
-| 데이터 | 정보 유출 | 암호화(at-rest, in-transit), 개인정보 마스킹 |
-| 의존성 | 취약한 라이브러리 | 자동 스캔 (Snyk / Dependabot), 정기 업데이트 |
-| [추가 계층] | [위협] | [대응] |
+### 3.2 라우트
 
-#### 데이터 암호화
+| 경로 | 종류 | 접근 제어 위치 |
+|---|---|---|
+| `/` | 페이지 | 없음 |
+| `/login`, `/signup` | 페이지 | 없음 |
+| `/c/[id]` | 페이지 (`dynamicParams = false`) | 없음 |
+| `/c/[id]/feed`, `/curriculum`, `/leaderboard`, `/day/[n]` | `(home)` 그룹 페이지 | `(home)/layout.tsx`: 참여자·그 챌린지 강사가 아니면 `/c/[id]`로 redirect |
+| `/api/webhooks/groble` | 라우트 핸들러 (POST) | HMAC 서명 |
+| `not-found.tsx`, `error.tsx` | 특수 파일 | - |
 
-| 대상 | 암호화 방식 | 알고리즘 / 키 관리 |
-|------|-------------|-------------------|
-| 전송 중 데이터 | TLS 1.3 | 인증서 자동 갱신 (ACM / Let's Encrypt) |
-| 저장 데이터 | AES-256-GCM | [KMS / Vault] 키 관리 |
-| 비밀번호 | 단방향 해시 | bcrypt (cost factor [12]) |
-| 민감 정보 (PII) | 필드 레벨 암호화 | [KMS / 자체 키] |
-| [추가 대상] | [방식] | [상세] |
-
-### 6.3 확장성 (Scalability)
-
-#### 수평 확장 전략
-
-| 컴포넌트 | 확장 방식 | 상세 |
-|----------|-----------|------|
-| API Server | 수평 확장 (Scale-Out) | 오토스케일링, Stateless 설계 |
-| Worker | 수평 확장 | 메시지 큐 기반 작업 분배 |
-| Database | 읽기 확장 (Read Replica) | 쓰기: Primary, 읽기: Replica |
-| Cache | 클러스터 확장 | Redis Cluster / Sentinel |
-| [추가 컴포넌트] | [방식] | [상세] |
-
-#### 오토스케일링 정책
-
-| 지표 | 임계값 | Scale-Out | Scale-In | 쿨다운 |
-|------|--------|-----------|----------|--------|
-| CPU 사용률 | [70%] | +[N]대 | -[N]대 | [300초] |
-| 메모리 사용률 | [80%] | +[N]대 | -[N]대 | [300초] |
-| 요청 수 (RPS) | [N건/초] | +[N]대 | -[N]대 | [300초] |
-| 최소 인스턴스 | [N]대 | - | - | - |
-| 최대 인스턴스 | [N]대 | - | - | - |
-
-### 6.4 가용성 (Availability)
-
-#### 가용성 목표
-
-| 항목 | 목표 | 허용 다운타임 (연간) |
-|------|------|---------------------|
-| 전체 시스템 | [99.9% / 99.95% / 99.99%] | [8.76시간 / 4.38시간 / 52.6분] |
-| API 서비스 | [목표] | [다운타임] |
-| 데이터베이스 | [목표] | [다운타임] |
-
-#### 이중화 구성
-
-| 컴포넌트 | 이중화 방식 | 페일오버 시간 |
-|----------|-------------|---------------|
-| API Server | Active-Active (다중 인스턴스) | 즉시 (로드 밸런서) |
-| Database | Primary-Replica (Streaming Replication) | [< N초, 자동 페일오버] |
-| Cache (Redis) | Sentinel / Cluster | [< N초] |
-| Message Queue | Mirrored Queue / Replication | [< N초] |
-| Load Balancer | [이중화 방식] | [페일오버 시간] |
-
-#### 장애 복구 (DR - Disaster Recovery)
-
-| 항목 | 내용 |
-|------|------|
-| RPO (Recovery Point Objective) | [N시간] - 최대 허용 데이터 손실 시간 |
-| RTO (Recovery Time Objective) | [N시간] - 최대 허용 복구 시간 |
-| DR 전략 | [Pilot Light / Warm Standby / Multi-Site Active-Active] |
-| DR 사이트 | [리전 / 가용 영역] |
-| 복구 절차 | [별도 DR 절차서 참조 또는 개요 기술] |
-| DR 훈련 주기 | [분기 1회 / 반기 1회] |
-
-#### 헬스체크 구성
-
-| 대상 | 엔드포인트 | 주기 | 타임아웃 | 실패 기준 |
-|------|-----------|------|----------|-----------|
-| API Server | `/health` | [30초] | [5초] | [연속 3회 실패] |
-| Database | TCP 연결 확인 | [30초] | [5초] | [연속 3회 실패] |
-| Redis | `PING` 명령 | [15초] | [3초] | [연속 3회 실패] |
-| 외부 서비스 | [엔드포인트] | [60초] | [10초] | [연속 N회 실패] |
+미들웨어(`middleware.ts`/`proxy.ts`)는 없다. 접근 제어는 레이아웃과 서버 액션·규칙 함수 안에서 한다.
 
 ---
 
-## 7. 통합 패턴
+## 4. 데이터 경계와 흐름
 
-### 7.1 API Gateway 패턴
+### 4.1 경계
 
-| 항목 | 내용 |
-|------|------|
-| 도구 | [Kong / AWS API Gateway / Nginx / Traefik] |
-| 라우팅 | URL 경로 기반 서비스 라우팅 |
-| 인증 | JWT 검증, API Key 인증 |
-| Rate Limiting | IP/사용자별 요청 제한 |
-| CORS | [허용 Origin 정책] |
-| 요청/응답 변환 | 헤더 추가, 바디 변환 |
-| 로깅 | 요청/응답 로깅 (민감 정보 마스킹) |
-| 서킷 브레이커 | [임계값 및 정책] |
+| 경계 | 규칙 | 근거 |
+|---|---|---|
+| 브라우저 ↔ DB | 직접 접근 없음. 모든 테이블 RLS 켜고 정책 없음 → anon 키로는 읽기·쓰기 불가 | `0002_app_adjust.sql`, `0003` |
+| 서버 ↔ DB | `SUPABASE_SERVICE_ROLE_KEY`로만. 클라이언트 번들에 넣지 않음 | `db.ts` 주석, `.env.example` |
+| 서버 ↔ Auth | 세션 확인은 anon 키 + 쿠키(`authClient`). 데이터 조회에는 쓰지 않음 | `session.ts` 주석 |
+| 권한 판정 | 앱 코드(`store.ts` 규칙, `(home)/layout.tsx`)가 한다. DB 정책은 없음 | ADR-002 |
+| 브라우저 저장 | 인증 임시 글만 `localStorage`(`cu-draft-{id}-{day}`) | `CheckinForm.tsx` |
 
-#### API Gateway 라우팅 규칙
+### 4.2 요청 처리 흐름 (DB 모드, 쓰기)
 
-| 경로 패턴 | 대상 서비스 | 인증 | Rate Limit |
-|-----------|-------------|------|------------|
-| `/api/v1/auth/**` | Auth Service | 불필요 (일부) | [N req/min] |
-| `/api/v1/users/**` | API Server | Bearer Token | [N req/min] |
-| `/api/v1/posts/**` | API Server | Bearer Token | [N req/min] |
-| `/api/v1/files/**` | File Service | Bearer Token | [N req/min] |
-| `/api/v1/admin/**` | API Server | Bearer Token + Admin Role | [N req/min] |
-| [추가 경로] | [서비스] | [인증] | [제한] |
+```mermaid
+sequenceDiagram
+    participant B as 브라우저
+    participant A as 서버 액션
+    participant S as session.ts
+    participant ST as store.ts
+    participant D as db.ts
+    participant DB as Supabase
 
-### 7.2 메시지 큐 패턴
-
-| 항목 | 내용 |
-|------|------|
-| 도구 | [RabbitMQ / Apache Kafka / AWS SQS] |
-| 용도 | 비동기 작업 처리, 서비스 간 디커플링 |
-| 메시지 포맷 | JSON (스키마 버전 포함) |
-| 재시도 정책 | [최대 N회, 지수 백오프] |
-| Dead Letter Queue | [DLQ 구성 및 모니터링] |
-
-#### 큐/토픽 목록
-
-| 큐/토픽 이름 | 용도 | Producer | Consumer | 메시지 예시 |
-|-------------|------|----------|----------|-------------|
-| `email.send` | 이메일 발송 | API Server | Notification Worker | `{ "to": "...", "template": "...", "data": {...} }` |
-| `file.process` | 파일 처리 (리사이징 등) | API Server | File Worker | `{ "fileId": "...", "operations": [...] }` |
-| `notification.push` | 푸시 알림 | API Server | Notification Worker | `{ "userId": "...", "title": "...", "body": "..." }` |
-| `audit.log` | 감사 로그 기록 | All Services | Audit Worker | `{ "action": "...", "userId": "...", "resource": "..." }` |
-| [추가 큐/토픽] | [용도] | [Producer] | [Consumer] | [메시지 구조] |
-
-#### 메시지 포맷 표준
-
-```json
-{
-  "id": "[UUID - 메시지 고유 ID]",
-  "type": "[이벤트 타입, 예: email.send]",
-  "version": "[메시지 스키마 버전, 예: 1.0]",
-  "timestamp": "[ISO 8601 형식]",
-  "source": "[발행 서비스명]",
-  "data": {
-    "[메시지 타입별 페이로드]": "..."
-  },
-  "metadata": {
-    "correlationId": "[요청 추적 ID]",
-    "userId": "[요청자 ID, 해당 시]"
-  }
-}
+    B->>A: enrollAction(id) 등
+    A->>S: currentUserId()
+    S->>D: loadState() (요청당 1회, cache)
+    D->>DB: profiles·enrollments·submissions·posts·likes·comments·point_logs 전체 조회
+    S->>DB: auth.getUser() (쿠키)
+    A->>S: mutate(규칙)
+    S->>D: loadState() 다시 (최신 상태)
+    S->>ST: replaceState → 규칙 실행
+    alt 규칙 실패
+        ST-->>A: { ok: false, message }
+    else 규칙 성공
+        S->>D: persist(before, after)
+        D->>DB: 새 행 insert / 바뀐 행 update / 지운 행 delete (부모 → 자식)
+        alt DB가 거절 (CAPACITY_FULL, one_active_enrollment)
+            S-->>A: 정원·중복 문구
+        else 그 밖의 DB 오류
+            S-->>A: "저장하지 못했어요. 잠시 뒤 다시 해 주세요"
+        end
+    end
+    A-->>B: Result
 ```
 
-### 7.3 이벤트 버스 패턴
+- 읽기: 페이지가 `currentUserId()`를 부르면 `loadStore()`가 그 요청에서 한 번 DB 전체 상태를 불러오고, 이후 `store.ts` 조회 함수는 메모리 상태를 읽는다.
+- 쓰기: `persist`는 한 번에 여러 `insert/update`를 순서대로 보낸다. 하나의 DB 트랜잭션으로 묶이지 않는다(중간 실패 시 일부만 저장될 수 있음).
+- 포인트 원장은 뒤에 붙은 행만 넣고, 멱등 키는 `"{source_key}:{같은 원인 몇 번째}"`.
 
-| 항목 | 내용 |
-|------|------|
-| 적용 여부 | [사용 / 미사용] |
-| 도구 | [Kafka / EventBridge / NATS] |
-| 이벤트 저장소 | [이벤트 소싱 적용 여부] |
-| 이벤트 스키마 레지스트리 | [사용 시 도구명] |
+### 4.3 챌린지 정보의 출처
 
-#### 도메인 이벤트 목록
+DB 모드에서도 챌린지 제목·기간·정원·인증 형식·Day 제목은 `lib/data.ts`에서 읽는다(`findChallenge`). DB의 `challenges`·`missions` 행은 시드 스크립트(`web/scripts/seed.ts`)가 같은 데이터로 넣으며, 앱은 slug ↔ uuid 연결, 미션 id 찾기, 정원 트리거, 그로블 상품 연결에 쓴다. 두 곳의 값이 어긋나지 않게 하는 장치는 시드 스크립트뿐이다.
 
-| 이벤트명 | 도메인 | 발행 조건 | 구독자 | 데이터 |
-|----------|--------|-----------|--------|--------|
-| `UserRegistered` | User | 회원 가입 완료 시 | Notification, Analytics | `{ userId, email, registeredAt }` |
-| `OrderCreated` | Order | 주문 생성 시 | Payment, Inventory, Notification | `{ orderId, userId, items, totalAmount }` |
-| `PaymentCompleted` | Payment | 결제 완료 시 | Order, Notification | `{ paymentId, orderId, amount, method }` |
-| [추가 이벤트] | [도메인] | [조건] | [구독자] | [데이터] |
+### 4.4 메모리 모드
+
+`NEXT_PUBLIC_SUPABASE_URL`과 `SUPABASE_SERVICE_ROLE_KEY`가 없으면:
+
+- 상태를 `globalThis.__cuStore`에만 둔다. 서버를 다시 켜면 시드 상태로 돌아간다.
+- 로그인은 데모 쿠키 `cu-session`(httpOnly, sameSite=lax, 7일).
+- 데모 계정: `student@demo.test`, `instructor@demo.test`, `admin@demo.test`, 비밀번호 `demo1234` (`store.ts`).
+- 그로블 웹훅은 503을 돌려준다.
 
 ---
 
-## 부록
+## 5. 배포 구성
 
-### A. 다이어그램 목록
+| 항목 | 내용 | 근거 |
+|---|---|---|
+| 호스팅 | Vercel | `vercel.json`, 커밋 `bdcd8a7`, `242719c` |
+| 함수 지역 | `icn1` (서울) | `vercel.json` |
+| DB 지역 | Supabase `ap-northeast-2` (서울) | 마이그레이션 주석 |
+| 환경 변수 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`(서버 전용), `GROBLE_WEBHOOK_SECRET`(서버 전용) | `.env.example` |
+| 빌드 | `npm run build --prefix web` | CLAUDE.md |
+| 마이그레이션 적용 | `supabase/migrations/0001~0004` (실행 2026-11-26, 주석 기준). 적용 도구·절차 기록은 미확인 | |
+| 운영 URL·도메인 | 미확인 | |
+| 환경 구분(개발/스테이징) | 미확인. 로컬은 메모리 모드 또는 같은 Supabase 프로젝트 사용 기록 있음(테스트결과보고서 "로컬 :3123 + Supabase challengeup") | |
+| 정기 작업(pg_cron) | 미구현 (0001 주석에 "후속 마이그레이션에서 추가") | |
 
-| 다이어그램 | 섹션 | 용도 |
-|-----------|------|------|
-| 시스템 컨텍스트 다이어그램 | 2.3 | 외부 시스템 연동 전체 뷰 |
-| 컨테이너 다이어그램 | 2.4 | 시스템 내부 구성 요소 |
-| 컴포넌트 다이어그램 | 2.5 | API Server 내부 모듈 |
-| 배포 다이어그램 | 4.1 | 인프라 배포 구조 |
-| CI/CD 파이프라인 | 4.3 | 빌드/배포 프로세스 |
-| 인증 플로우 | 6.2 | 인증/인가 흐름 |
+---
 
-### B. 기술 스택 요약
+## 6. 아키텍처 결정 기록 (ADR)
 
-| 계층 | 기술 |
-|------|------|
-| 프론트엔드 | [기술 목록] |
-| 백엔드 | [기술 목록] |
-| 데이터베이스 | [기술 목록] |
-| 인프라 | [기술 목록] |
-| 모니터링 | [기술 목록] |
-| CI/CD | [기술 목록] |
+코드 주석·마이그레이션·커밋 메시지에서 이유를 확인할 수 있는 결정만 적었다. 결정자·승인 여부는 기록이 없어 "미확인"이다.
 
-### C. 관련 문서 링크
+### ADR-001: 쓰기는 서버 액션으로, 공개 REST API는 두지 않는다
 
-| 문서 | 경로 |
-|------|------|
-| 요구사항 정의서 | [경로] |
-| 데이터베이스 설계서 | [경로] |
-| API 설계서 | [경로] |
-| 화면 설계서 | [경로] |
-| 상세 설계서 | [경로] |
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현됨 / 승인 미확인 |
+| 근거 | SRS 5.2.1 "화면 데이터는 Server Components…, 쓰기는 Server Actions", "외부 공개 REST API 없음 (MVP)", `actions.ts` "서버 액션. 화면에서 직접 호출해요." |
+
+- **결정**: 화면은 서버 컴포넌트에서 데이터를 읽고, 쓰기는 `"use server"` 함수로 한다. 외부에서 받는 것은 그로블 웹훅 하나뿐이다.
+- **결과**: 서버 액션은 화면을 거치지 않고도 호출될 수 있어 입력 타입을 서버에서 다시 검사한다(`signupAction` 주석). 연결 실패는 `safeAction`으로 일반 실패 결과로 바꾼다(ADR-007).
+- **SRS와 다른 점**: SRS는 신청·인증을 Postgres RPC(`enroll_challenge`, `submit_mission`)로 계획했지만 구현은 앱 코드 규칙 + `persist`다(ADR-004).
+
+### ADR-002: DB는 서버의 service_role 키로만, RLS는 켜고 정책은 두지 않는다
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현됨 |
+| 근거 | `0002_app_adjust.sql` "정책이 없으므로 브라우저(anon 키)로는 접근할 수 없고, 서버의 service_role 키로만 읽고 쓴다 (BP-CONTENT-001-3)", `db.ts` "브라우저에는 절대 넘기지 않는다" |
+
+- **결정**: 13개 테이블 + `webhook_events` 모두 RLS 활성, 정책 없음. `service_role`에만 권한 부여(새 테이블 자동 API 권한을 끈 프로젝트라서).
+- **결과**: 브라우저가 anon 키로 테이블을 읽을 수 없다(FR-004-AC2의 "0건"과 같은 효과). 대신 사용자별 권한은 모두 앱 코드가 지켜야 하며, 서버 코드 실수는 DB가 막아 주지 않는다.
+
+### ADR-003: Vercel 함수 지역을 서울(icn1)로 고정
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현됨 (커밋 `242719c`) |
+| 근거 | 커밋 메시지 "DB(Supabase 서울)와 같은 지역에서 실행해 왕복 지연을 줄임. 운영 QA에서 신청 15초 넘게 걸림을 발견" |
+
+- **결과**: 바꾼 뒤 측정값 기록은 미확인. 요청마다 전체 상태를 읽는 구조(ADR-004)라 왕복 횟수가 많다.
+
+### ADR-004: 메모리 상태 + 규칙 실행 + 차이 저장(store + persist diff)
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현됨 (커밋 `748224c`) |
+| 근거 | 커밋 "요청마다 DB에서 상태를 읽고 바뀐 부분만 저장(server/db.ts, session.ts). 키가 없으면 메모리 모드", `store.ts` "규칙은 src/domain 의 순수 함수를 그대로 써요. 시각은 항상 인자로 받아요(테스트 가능)." |
+
+- **결정**: 먼저 만든 메모리 저장소의 규칙 코드를 그대로 두고, DB 모드에서는 요청마다 DB 전체를 메모리 상태로 불러와 규칙을 돌린 뒤 전후 차이만 DB에 쓴다.
+- **장점**: 규칙 코드 하나로 메모리 모드·DB 모드·단위 테스트(`store.test.ts`)를 모두 쓴다.
+- **단점(코드에서 확인)**:
+  - 요청마다 여러 테이블을 전부 읽는다. 데이터가 늘면 느려진다. 규모별 측정은 미확인.
+  - "불러오기 → 규칙 확인 → 저장" 사이에 다른 요청이 끼면 규칙 확인을 둘 다 통과할 수 있다(`0004` 주석). 정원은 ADR-005로, 중복 신청은 부분 고유 인덱스 `one_active_enrollment`로 DB가 한 번 더 막는다. 그 밖의 규칙(동시 참여 5개, 인증 중복 등)은 고유 제약 `submissions(enrollment_id, mission_id)` 외에 DB 보호가 없다.
+  - `persist`가 트랜잭션이 아니다.
+  - `persist`는 인증(`submissions`)의 수정·삭제를 반영하지 않는다(코드 주석 "수정·삭제는 아직 화면에 없음").
+
+### ADR-005: 마지막 자리 동시 신청은 DB 트리거로 막는다
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현됨 (`0004_enroll_capacity.sql`, 커밋 `c46a189`, 수정 `18acf30`) |
+| 근거 | `0004` 주석 "신청 행을 넣기 직전에 챌린지 행을 잠그고 인원을 다시 세서, 정원이 찼으면 거절한다" |
+
+- **결과**: 트리거가 `CAPACITY_FULL` 예외를 내면 `mutate`가 "정원이 다 찼어요. 비슷한 챌린지를 둘러볼까요?"로 바꾼다. 상세는 데이터베이스설계서 5장.
+
+### ADR-006: 그로블 웹훅은 서명 확인 + 이벤트 id 멱등 + 처리 불가도 200
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현됨 (커밋 `8310050`) |
+| 근거 | `route.ts` 주석 "같은 이벤트는 한 번만 처리하고, 처리할 수 없는 경우도 기록한 뒤 200을 돌려준다(그로블이 재전송하지 않도록)" |
+
+- **결과**: 실패 사유는 `webhook_events.result`에만 남는다. 운영자가 이 표를 확인하는 절차는 미확인. 중복 확인(select) 후 처리·기록(insert) 사이에 같은 이벤트가 동시에 오면 두 번 처리될 수 있다(신청은 `one_active_enrollment`가 막음).
+
+### ADR-007: 서버 액션 연결 실패를 화면 오류로 번지지 않게 한다
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현됨 (커밋 `4e55d62`) |
+| 근거 | `lib/safe-action.ts` 주석, 커밋 "연결 실패가 오류 페이지로 번지지 않게 함" |
+
+- **범위**: 로그인·가입·인증 제출·글쓰기/수정. 신청·좋아요·삭제는 감싸지 않았다.
+
+### ADR-008: 새 글 id를 브라우저가 정해 재시도 중복을 막는다
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현됨 (커밋 `d97ef43`, FEED-02) |
+| 근거 | 커밋 "글쓰기 창을 열 때 글 id를 정해 보내고, 같은 작성자가 같은 id로 다시 보내면 새로 만들지 않음" |
+
+### ADR-009: 가입 즉시 이메일 확인 처리
+
+| 항목 | 내용 |
+|---|---|
+| 상태 | 구현됨 |
+| 근거 | `actions.ts` "이메일 인증 메일 발송은 아직 연결하지 않아서, 가입과 동시에 확인된 계정으로 만들어요." |
+
+- **SRS와 다른 점**: FR-001은 인증 메일을 요구한다. 메일 연결 시점은 미확인.
+
+---
+
+## 7. 비기능 요구사항 대응
+
+| NFR | 대응 | 상태 |
+|---|---|---|
+| NFR-001 성능 | 함수·DB 같은 지역(ADR-003). 요청당 전체 상태 조회는 위험 요소 | 측정값 미확인 |
+| NFR-004 인증·인가 | Supabase Auth + 전 테이블 RLS(정책 없음) + 앱 코드 권한 확인 | 구현 |
+| NFR-005 데이터 보호 | HTTPS는 Vercel 기본. 비공개 인증 사진 서명 URL은 사진 기능이 없어 해당 없음 | 부분 |
+| NFR-006 관리자 작업 로그 | `admin_logs` 테이블만 있고 쓰는 코드 없음 | 미구현 |
+| NFR-008 백업 | Supabase Free 플랜, 복원 미실행 (TC-OP-BAK-001) | 미구현 |
+| NFR-010 360~1440px | 반응형 구현, TC-CP-RES-001 부분 통과 | 부분 |
+| NFR-011 접근성 | 대비 4.5:1, 포커스 표시, 44px 터치 | 부분 (화면설계서 2.3) |
+| NFR-012 KST 기준 | 날짜 판정은 `domain/day-calendar.ts`의 KST 함수와 서버 시각 | 구현 |
+| NFR-013 코드 품질 | TypeScript, Vitest 단위 테스트(`domain`, `store`, `groble`) | 부분 (CI 없음) |
+
+---
+
+## 8. 미확인·확인 필요 사항
+
+| 번호 | 내용 |
+|---|---|
+| 8-1 | 운영 URL, Vercel 프로젝트 이름, 도메인 |
+| 8-2 | Postgres 버전, Supabase 요금제(테스트 기록에는 Free) |
+| 8-3 | 마이그레이션 적용 도구·절차와 운영 DB의 실제 적용 상태 |
+| 8-4 | `icn1` 변경 후 응답 시간 측정값 |
+| 8-5 | 데이터 규모가 늘 때 `loadState` 전체 조회의 성능 한계 |
+| 8-6 | 미들웨어가 없을 때 Supabase 세션 토큰 갱신이 서버 컴포넌트 요청에서 제대로 되는지 (`authClient`는 서버 컴포넌트에서 쿠키를 쓰지 못하면 다음 서버 액션까지 미룸) |
+| 8-7 | 그로블 웹훅 실패 기록을 누가 언제 확인하는지 |
+| 8-8 | 각 ADR의 결정자·승인 여부 |

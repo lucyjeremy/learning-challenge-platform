@@ -4,12 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-This is the workspace for **챌린지업 (ChallengeUp)**, an online lecture-challenge site. The front end lives in `web/` (Next.js 16 App Router, Tailwind v4). It runs on seed data in `web/src/lib/data.ts`; Supabase is not connected yet, so enrolling, posting and check-ins are kept in the browser only.
+Common rules for all coding agents (commands, scope, verification, reporting) live in AGENTS.md:
+
+@AGENTS.md
+
+This is the workspace for **챌린지업 (ChallengeUp)**, an online lecture-challenge site. The app lives in `web/` (Next.js 16 App Router, Tailwind v4) and is deployed on Vercel (region icn1) at https://learning-challenge-platform-virid.vercel.app. Challenge and mission content comes from `web/src/lib/data.ts`; users, enrollments, submissions, posts and points are stored in Supabase (project `challengeup`, Seoul) through server actions using the service role. Without the Supabase env vars the app falls back to in-memory mode. Groble payment webhooks arrive at `/api/webhooks/groble`, and GA4 is installed in the root layout.
 
 - Install: `npm install --prefix web`
 - Dev server: `npm run dev --prefix web`
-- Build: `npm run build --prefix web` (all pages are prerendered statically)
-- Lint: `npm run lint --prefix web`
+- Verify: `node scripts/verify.mjs` (quick) / `node scripts/verify.mjs --full` (lint, typecheck, test)
+- Build: `npm run build --prefix web`
 - Next.js 16 differs from older versions; read `web/node_modules/next/dist/docs/` before using an API you are unsure of.
 
 ## Product concept
@@ -19,11 +23,11 @@ This is the workspace for **챌린지업 (ChallengeUp)**, an online lecture-chal
 - A challenge moves through these stages: 작성 중 → 검수 대기 → 모집 중 → 진행 중 → 종료 → 정산 완료.
 - The user writes in Korean. Use Korean for UI copy and for replies.
 
-## Planned stack (not yet set up)
+## Stack
 
-- Next.js App Router, Tailwind and shadcn/ui
-- Supabase for auth, Postgres, storage and realtime; the Supabase MCP needs `/mcp` authorization before use
-- Vercel for deployment
+- Next.js App Router and Tailwind (shadcn/ui is not installed)
+- Supabase Auth and Postgres (storage and realtime are not used yet); the Supabase MCP needs `/mcp` authorization before use, the CLI works with `npx supabase@latest db query --remote=vklzttizfwsynxqjdsll`
+- Vercel for deployment (push to `main` deploys production)
 
 ## Planned data model
 
