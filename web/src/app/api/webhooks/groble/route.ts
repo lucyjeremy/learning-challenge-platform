@@ -1,8 +1,9 @@
 // 그로블 결제 웹훅 수신. 결제 완료 → 구매자 이메일로 회원을 찾아 연결된 챌린지에 신청을 만든다.
-// 같은 이벤트는 한 번만 처리하고, 처리할 수 없는 경우도 기록한 뒤 200을 돌려준다(그로블이 재전송하지 않도록).
+// 같은 이벤트는 한 번만 처리하고(기록을 먼저 넣어 동시 재전송도 막음), 처리할 수 없는 경우도 기록한 뒤 200을 돌려준다.
+// 금액·통화가 이상하거나 취소·환불이면 신청을 바꾸지 않고 review:로 남겨 사람이 확인한다.
 
 import { adminDb, dbEnabled } from "@/server/db";
-import { verifyGroble, type GrobleEvent } from "@/server/groble";
+import { planGroble, verifyGroble, type GrobleEvent } from "@/server/groble";
 import { mutate } from "@/server/session";
 import { enroll } from "@/server/store";
 
@@ -28,21 +29,30 @@ export async function POST(req: Request) {
   const id = req.headers.get("x-groble-idempotency-key") ?? event.id;
   const db = adminDb();
 
-  const { data: seen } = await db.from("webhook_events").select("result").eq("id", id).maybeSingle();
-  if (seen) return Response.json({ ok: true, duplicate: true, result: seen.result });
+  // 먼저 기록부터 넣어요. 같은 이벤트가 동시에 와도 기본키 충돌로 하나만 통과해요
+  const claim = await db.from("webhook_events").insert({ id, type: event.type, result: "processing", payload: event });
+  if (claim.error) {
+    if (claim.error.code !== "23505") return Response.json({ error: "기록하지 못했어요" }, { status: 500 });
+    const { data: seen } = await db.from("webhook_events").select("result").eq("id", id).maybeSingle();
+    return Response.json({ ok: true, duplicate: true, result: seen?.result });
+  }
 
-  const result = await handle(event);
-  await db.from("webhook_events").insert({ id, type: event.type, result, payload: event });
+  let result: string;
+  try {
+    result = await handle(event);
+  } catch (e) {
+    result = `failed:${e instanceof Error ? e.message : "처리 중 오류"}`;
+    console.error("[groble]", id, e);
+  }
+  await db.from("webhook_events").update({ result }).eq("id", id);
   return Response.json({ ok: true, result });
 }
 
 async function handle(event: GrobleEvent): Promise<string> {
-  if (event.type !== "payment.completed") return "recorded";
+  const plan = planGroble(event);
+  if (plan.action === "record") return plan.result;
+  const { email, contentId } = plan;
   const db = adminDb();
-  const obj = event.data?.object ?? {};
-  const email = obj.buyer?.email?.trim().toLowerCase();
-  const contentId = obj.content?.id;
-  if (!email || !contentId) return "failed:구매자 이메일이나 상품 id가 없어요";
 
   const { data: challenge } = await db.from("challenges").select("slug").eq("groble_content_id", contentId).maybeSingle();
   if (!challenge) return "unmapped_product";
