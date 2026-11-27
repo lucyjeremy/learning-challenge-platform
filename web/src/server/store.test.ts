@@ -154,6 +154,17 @@ describe("피드 (BP-FEED, BP-POINT-001)", () => {
     expect(pointsOf("u-student", PY)).toBe(before); // 본인 글 댓글은 0점
   });
 
+  it("같은 글 id로 다시 보내면 글이 한 번만 생긴다 (응답 유실 후 재시도)", () => {
+    const id = "0b9c7a52-3f1e-4c8a-9d2b-6e5f4a3b2c1d";
+    const before = postsOf(PY).length;
+    const first = createPost("u-student", PY, "자유", "재시도 점검 글", NOW, { title: "재시도", id });
+    const again = createPost("u-student", PY, "자유", "재시도 점검 글", NOW, { title: "재시도", id });
+    expect(first).toEqual({ ok: true, value: id });
+    expect(again).toEqual({ ok: true, value: id });
+    expect(postsOf(PY).length).toBe(before + 1);
+    expect(createPost("u-student", PY, "자유", "형식이 틀린 id", NOW, { id: "not-a-uuid" }).ok).toBe(false);
+  });
+
   it("공지는 강사만 올릴 수 있다", () => {
     const r = createPost("u-student", PY, "공지", "학생이 공지를 올려요", NOW);
     expect(r.ok).toBe(false);

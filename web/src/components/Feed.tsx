@@ -270,6 +270,8 @@ function PostEditor({
     body: editing?.body ?? "",
   };
   const [v, setV] = useState(initial);
+  // 새 글 id를 창을 열 때 정해 두면, 응답을 못 받아 다시 눌러도 글이 한 번만 생겨요
+  const [newId] = useState(() => crypto.randomUUID());
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
   const [confirmDialog, ask] = useConfirm();
@@ -293,7 +295,7 @@ function PostEditor({
     setError("");
     start(async () => {
       const input = { kind: v.kind, title: v.title.trim(), body: v.body.trim() };
-      const r = editing ? await safeAction(editPostAction(editing.id, input)) : await safeAction(createPostAction(challengeId, input));
+      const r = editing ? await safeAction(editPostAction(editing.id, input)) : await safeAction(createPostAction(challengeId, input, newId));
       if (!r.ok) {
         setError(r.message);
         return;

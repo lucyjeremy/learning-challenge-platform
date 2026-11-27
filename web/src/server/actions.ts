@@ -99,10 +99,11 @@ export async function submitProofAction(
 
 export type PostInput = { kind: "질문" | "자유"; title: string; body: string };
 
-export async function createPostAction(challengeId: string, input: PostInput): Promise<Result<string>> {
+/** postId: 글쓰기 창을 열 때 정한 id. 재시도해도 같은 id라 글이 한 번만 생겨요. */
+export async function createPostAction(challengeId: string, input: PostInput, postId?: string): Promise<Result<string>> {
   const uid = await currentUserId();
   if (!uid) return { ok: false, message: "로그인이 필요해요" };
-  return mutate(() => createPost(uid, challengeId, input.kind, input.body, new Date(), { title: input.title }));
+  return mutate(() => createPost(uid, challengeId, input.kind, input.body, new Date(), { title: input.title, id: postId }));
 }
 
 export async function editPostAction(postId: string, input: PostInput): Promise<Result> {

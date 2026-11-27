@@ -101,6 +101,8 @@ function nextId() {
   return crypto.randomUUID();
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /** DB에서 불러온 상태로 바꿔요 (server/db.ts). */
 export function replaceState(next: State) {
   g.__cuStore = next;
@@ -435,8 +437,14 @@ export function createPost(
   kind: "질문" | "자유" | "공지",
   body: string,
   now: Date,
-  opts: { pinned?: boolean; title?: string } = {},
+  opts: { pinned?: boolean; title?: string; id?: string } = {},
 ): Result<string> {
+  // 같은 글 id로 다시 보내면(응답을 못 받고 재시도) 새로 만들지 않아요
+  if (opts.id !== undefined) {
+    if (!UUID.test(opts.id)) return fail("글을 저장하지 못했어요. 새로 고친 뒤 다시 써 주세요");
+    const saved = state().posts.find((p) => p.id === opts.id);
+    if (saved) return saved.authorId === userId ? ok(saved.id) : fail("글을 저장하지 못했어요. 새로 고친 뒤 다시 써 주세요");
+  }
   const c = findChallenge(challengeId);
   const user = getUser(userId);
   if (!c || !user) return fail("로그인하면 글을 쓸 수 있어요");
@@ -446,7 +454,7 @@ export function createPost(
   if (kind !== "공지" && !isMemberOf(userId, challengeId) && !isInstructor) return fail("신청한 참여자만 글을 쓸 수 있어요");
   const problem = checkPostText(opts.title, body);
   if (problem) return fail(problem);
-  const id = nextId();
+  const id = opts.id ?? nextId();
   state().posts.push({
     id,
     challengeId,
