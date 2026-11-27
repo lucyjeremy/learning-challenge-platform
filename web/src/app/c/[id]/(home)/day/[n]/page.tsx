@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { CheckinForm } from "@/components/CheckinForm";
 import { challenges, getChallenge, missionDetail } from "@/lib/data";
 import { currentUserId } from "@/server/actions";
-import { dayStatusesFor, isInstructorOf, mySubmission, streakOf, submissionPoints } from "@/server/store";
+import { dayStatusesFor, isInstructorOf, isMemberOf, mySubmission, streakOf, submissionPoints } from "@/server/store";
 import { addDays, currentDay, fmtDate } from "@/lib/format";
 
 export const dynamicParams = false;
@@ -27,6 +27,8 @@ export default async function DayPage({ params }: PageProps<"/c/[id]/day/[n]">) 
   const today = currentDay(c);
   const date = addDays(c.startDate, n - 1);
   const uid = await currentUserId();
+  // 레이아웃 검사만으로는 이 페이지 데이터가 응답에 실리는 걸 막지 못해서, 읽기 전에 다시 확인해요
+  if (!isMemberOf(uid, id) && !isInstructorOf(uid, id)) redirect(`/c/${id}`);
   const status = dayStatusesFor(uid, id)[n];
   const sub = uid ? mySubmission(uid, id, n) : undefined;
   const streak = uid ? streakOf(uid, id).current : 0;

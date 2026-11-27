@@ -19,12 +19,17 @@ function ServerError({ message }: { message: string }) {
 }
 
 /** 로그인 뒤 돌아갈 주소. 같은 사이트 경로만 허용해요. */
-function useNext() {
-  const next = useSearchParams().get("next") ?? "/";
-  return next.startsWith("/") && !next.startsWith("//") ? next : "/";
+export function safeNext(value: string | null): string {
+  const next = value ?? "/";
+  // 브라우저는 \와 탭·줄바꿈을 /처럼 다루거나 지워서 "/\evil.example"을 외부 주소로 읽어요
+  return next.startsWith("/") && !next.startsWith("//") && !/[\\\s\p{Cc}]/u.test(next) ? next : "/";
 }
 
-export function LoginForm() {
+function useNext() {
+  return safeNext(useSearchParams().get("next"));
+}
+
+export function LoginForm({ showDemo }: { showDemo: boolean }) {
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [tried, setTried] = useState(false);
@@ -64,10 +69,12 @@ export function LoginForm() {
       </button>
       {error && <ServerError message={error} />}
 
-      <div className="mt-4 rounded-sm bg-grey-90 px-4 py-3 text-[12px] leading-relaxed text-grey-30">
-        <p className="font-bold text-grey-20">체험용 계정 (비밀번호 demo1234)</p>
-        <p>학생 student@demo.test · 강사 instructor@demo.test</p>
-      </div>
+      {showDemo && (
+        <div className="mt-4 rounded-sm bg-grey-90 px-4 py-3 text-[12px] leading-relaxed text-grey-30">
+          <p className="font-bold text-grey-20">체험용 계정 (비밀번호 demo1234)</p>
+          <p>학생 student@demo.test · 강사 instructor@demo.test</p>
+        </div>
+      )}
 
       <p className="mt-5 text-center text-[13px] text-grey-30">
         처음 왔나요? <Link href="/signup" className="inline-flex min-h-11 items-center text-grey-0 underline-offset-2 hover:underline">회원가입</Link>

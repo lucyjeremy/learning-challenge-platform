@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { LoginForm } from "@/components/AuthForm";
+import { dbEnabled } from "@/server/db";
 
 export const metadata: Metadata = { title: "로그인" };
 
@@ -11,7 +12,8 @@ export default function LoginPage() {
       <p className="mt-1 text-[14px] text-grey-30">로그인하면 보던 화면으로 돌아와요.</p>
       <div className="mt-8">
         <Suspense>
-          <LoginForm />
+          {/* 운영(DB 모드)에서는 체험용 계정 안내를 보여 주지 않아요 */}
+          <LoginForm showDemo={!dbEnabled} />
         </Suspense>
       </div>
     </div>
