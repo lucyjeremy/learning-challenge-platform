@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -18,12 +19,14 @@
     "spoqa-han-sans": "^3.3.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.1",
     "@tailwindcss/turbopack": "4.3.3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
+    "playwright": "^1.65.1",
     "tailwindcss": "4.3.3",
     "tsx": "^4.23.15",
     "typescript": "^5",
